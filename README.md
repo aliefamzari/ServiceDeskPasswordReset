@@ -1,20 +1,16 @@
 # Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+This script is to automate password reset procedure for bulk account.
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+The script will reset the password with the complexity meeting the criteria (12 characters, lowercase, uppercase and numbers). Plus it is also disregard ambiguous hard to read character such as O,0,o,l,I,1.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+The script will output the result on the PowerShell host screen, as well as save it as CSV file at the location of current user directory $env:USERPROFILE\result.csv
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+The password will have the flag 'user must changed the password during logon'. 
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+# Requirement
+
+1. An adm account on domain de-prod, with adequate permission to reset password in de-prod domain.
+
+2. RSAT tools for ACTIVE directory PowerShell module. (This can be request via OWS. Installed and enabled. For Service Desk, this module is included in SD tools)
+
+
