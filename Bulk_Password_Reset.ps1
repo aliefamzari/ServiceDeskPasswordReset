@@ -145,7 +145,7 @@ $results = @()
 
  foreach($user in $users){
 
-    $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 3 -RequiresNumerical 2 
+    $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 1 -RequiresNumerical 1 
     $NewPwd = ConvertTo-SecureString $Password -AsPlainText -Force
     # Set-ADAccountPassword $user -NewPassword $NewPwd -Reset
     # Set-ADUser -Identity $user -ChangePasswordAtLogon $true
