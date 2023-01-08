@@ -13,19 +13,18 @@ Function Write-Log {
     [Parameter(Position = 3)] [string]$Data,
     [Parameter(Position = 4)] [string]$Level
   )
-  #Datetime in UTC
-  $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K")
+  
+  $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K") #Datetime in UTC
   $Delimiter = " "
   $LogHeader = "DateTime" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
   $n = "`""
     
-  #Write data to log file
+  
   Try {
     $LogFileExist = Test-Path $File
     if (!$LogFileExist) {
-        $LogHeader |Out-File $File -ErrorAction Stop -Encoding UTF8
+        $LogHeader |Out-File $File -ErrorAction Stop -Encoding UTF8 #Write log header
     } 
-  #   $TimeStamp + $Delimiter + $Who + $Delimiter + $Data | Out-File $File -Append -ErrorAction Stop -Encoding UTF8
   }
   Catch {
     Write-Host "Error writing to log file $File - $Data" -ForegroundColor Red
@@ -76,126 +75,61 @@ Function Get-PDC {
       Return $PDC
     }
 } #end Get-PDC
+
 Function New-RandomizedPassword {
     [CmdletBinding()]
     param (
-        # Number of characters in password, defaults to 8
         [Parameter(Mandatory=$false)]
-        [ValidateRange(6, 64)]
+        [ValidateRange(6, 10000)]
         [Int]$PasswordLength = 8,
 
-
-        # Is at least 1 uppercase character required for password? Defaults to false
         [Parameter(Mandatory = $false)]
         [bool]$RequiresUppercase = $false,
 
-
-        # Is at least 1 numerical character required for password? Defaults to false
         [Parameter(Mandatory = $false)]
         [bool]$RequiresNumerical = $false,
 
-
-        # Is at least 1 special character required for password? Defaults to false
         [Parameter(Mandatory = $false)]
         [bool]$RequiresSpecial = $false
     )
 
+    $PasswordCharacterArray = New-Object -TypeName System.Collections.ArrayList
+    $CharacterSpaceArray = New-Object -TypeName System.Collections.ArrayList
 
-    [string]$Password= ""
-
-
-    if (($RequiresUppercase -eq $true) -and ($RequiresNumerical -eq $true) -and ($RequiresSpecial -eq $true))
+    switch ( $true )
     {
-        $Password+= ((65..72),(74..78),(80..90) | Get-Random | ForEach-Object {[char]$_}) # Add an uppercase character. Excluded 'I' and 'O'
-        $Password+= ((50..57) | Get-Random | ForEach-Object {[char]$_}) # Add a number. Excluded '0 and 1'
-        $Password+= ((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}) # Add a special character
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 4); $i++)
+        $RequiresUppercase
         {
-            $Password+= ((33..38) + (40..47) + (58..64) + (65..72),(74..78),(80..90) + (50..57) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
+            # Add an uppercase character. Excluded 'I' and 'O'
+            $null = $PasswordCharacterArray.Add(((65..72) + (74..78) + (80..90) | Get-Random | ForEach-Object {[char]$_}))
+            $PasswordLength = $PasswordLength - 1
+            $null = $CharacterSpaceArray.Add((65..72) + (74..78) + (80..90))
+        }
+        $RequiresNumerical
+        {
+            #Add a number. Excluded '0 and 1'
+            $null = $PasswordCharacterArray.Add(((50..57) | Get-Random | ForEach-Object {[char]$_}))
+            $PasswordLength = $PasswordLength - 1
+            $null = $CharacterSpaceArray.Add((50..57))
+        }
+        $RequiresSpecial
+        {
+            $null = $PasswordCharacterArray.Add(((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}))
+            $PasswordLength = $PasswordLength - 1
+            $null = $CharacterSpaceArray.Add((33..38) + (40..47) + (58..64))
         }
     }
-    elseif (($RequiresUppercase -eq $true) -and ($RequiresNumerical -eq $true) -and ($RequiresSpecial -eq $false))
+    # Add a lowercase character. Excluded 'l' and 'o'
+    $null = $PasswordCharacterArray.Add(((97..107) + (109,110) + (112..122) | Get-Random | ForEach-Object {[char]$_})) 
+    $PasswordLength = $PasswordLength - 1
+    $null = $CharacterSpaceArray.Add((97..107) + (109,110) + (112..122))
+
+    for($i = 1; $i -le $PasswordLength; $i++)
     {
-        $Password+= ((65..72),(74..78),(80..90) | Get-Random | ForEach-Object {[char]$_}) # Add an uppercase character. Excluded 'I' and 'O'
-        $Password+= ((50..57) | Get-Random | ForEach-Object {[char]$_}) # Add a number. Excluded '0 and 1'
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 3); $i++)
-        {
-            $Password+= ((65..72),(74..78),(80..90) + (50..57) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
+        $null = $PasswordCharacterArray.Add(($CharacterSpaceArray | Get-Random | ForEach-Object {[char]$_}))
     }
-    elseif (($RequiresUppercase -eq $true) -and ($RequiresNumerical -eq $false) -and ($RequiresSpecial -eq $true))
-    {
-        $Password+= ((65..72),(74..78),(80..90) | Get-Random | ForEach-Object {[char]$_}) # Add an uppercase character. Excluded 'I' and 'O'
-        $Password+= ((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}) # Add a special character
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
 
-
-        for($i = 1; $i -le ($PasswordLength - 3); $i++)
-        {
-            $Password+= ((33..38) + (40..47) + (58..64) + (65..72),(74..78),(80..90) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    elseif (($RequiresUppercase -eq $true) -and ($RequiresNumerical -eq $false) -and ($RequiresSpecial -eq $false))
-    {
-        $Password+= ((65..72),(74..78),(80..90) | Get-Random | ForEach-Object {[char]$_}) # Add an uppercase character. Excluded 'I' and 'O'
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 2); $i++)
-        {
-            $Password+= ((65..72),(74..78),(80..90) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    elseif (($RequiresUppercase -eq $false) -and ($RequiresNumerical -eq $true) -and ($RequiresSpecial -eq $true))
-    {
-        $Password+= ((50..57) | Get-Random | ForEach-Object {[char]$_}) # Add a number. Excluded '0 and 1'
-        $Password+= ((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}) # Add a special character
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 3); $i++)
-        {
-            $Password+= ((33..38) + (40..47) + (58..64) + (50..57) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    elseif (($RequiresUppercase -eq $false) -and ($RequiresNumerical -eq $true) -and ($RequiresSpecial -eq $false))
-    {
-        $Password+= ((50..57) | Get-Random | ForEach-Object {[char]$_}) # Add a number. Excluded '0 and 1'
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 2); $i++)
-        {
-            $Password+= ((50..57) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    elseif (($RequiresUppercase -eq $false) -and ($RequiresNumerical -eq $false) -and ($RequiresSpecial -eq $false))
-    {
-        for($i = 1; $i -le $PasswordLength; $i++)
-        {
-            $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    elseif (($RequiresUppercase -eq $false) -and ($RequiresNumerical -eq $false) -and ($RequiresSpecial -eq $true))
-    {
-        $Password+= ((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}) # Add a special character
-        $Password+= ((97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_}) # Add a lowercase character. Excluded 'l' and 'o'
-
-
-        for($i = 1; $i -le ($PasswordLength - 4); $i++)
-        {
-            $Password+= ((33..38) + (40..47) + (58..64) + (97..107),(109,110),(112..122) | Get-Random | ForEach-Object {[char]$_})
-        }
-    }
-    $CharacterArray = $Password.ToCharArray()
-    $ScrambledCharacterArray = $CharacterArray | Get-Random -Count $CharacterArray.Length
-    return -join $ScrambledCharacterArray
+    return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
 Function Send-SDMail {
   [CmdletBinding()]
