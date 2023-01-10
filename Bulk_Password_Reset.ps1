@@ -9,9 +9,9 @@ $PsWho = $env:USERNAME
 Function Write-Log {
   Param(
     [Parameter(Position = 0)] [string]$File,
-    [Parameter(Position = 2)] [string]$Who,
-    [Parameter(Position = 3)] [string]$Data,
-    [Parameter(Position = 4)] [string]$Level
+    [Parameter(Position = 1)] [string]$Who,
+    [Parameter(Position = 2)] [string]$Data,
+    [Parameter(Position = 3)] [string]$Level
   )
   
   $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K") #Datetime in UTC
@@ -33,7 +33,7 @@ Function Write-Log {
       $TimeStamp + $Delimiter + $Who + $Delimiter + $Level + $Delimiter + $n+$Data+$n | Out-File $File -Append -ErrorAction Stop -Encoding UTF8
   } #End Catch
   
-} #End Function
+} #End Write-log
 
 Function Get-PDC {
     [CmdletBinding()]
@@ -131,51 +131,101 @@ Function New-RandomizedPassword {
 
     return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
+
 Function Send-SDMail {
   [CmdletBinding()]
   param (
     [String]
-    $Mail,
+    $To,
     [String]
-    $Username,
+    $UserName,
     [String]
     $FullName,
     [String]
     $ManagerFullName,
+    [Parameter(Mandatory)]
+    [ValidateSet("Manager","User")]
+    $SendPwdTo,
     [String]
-    $PwdToMgr,
-    [String]
-    $PwdToUsr,
+    $Passwd,
     [String]
     $LogFile
   )
-  $PAMUsername = $Username
-  $Username = $PAMUsername.Substring(3)
+  # $PAMUsername = $Username
+  $Username = 'almaz'
   $MailTempPasswordSubject = "Temporary de-prod.dk password  for ##Fullname##"
-  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##: ##Password##<BR><BR>Please make sure to hand-over the password to the user." 
+  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##: ##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
   [Array]$MailAttachments = $null
   Write-Host "Sending mail"
-  $To = $Mail
   $From = "Ørsted SD AAC <SD_Assistance@orsted.com>"
-  If ($PwdToMgr) {
-    Write-Log $LogFile "Sending mail with password to $Mail"
+Switch ($SendPwdTo) {     
+   Manager {
+    # Write-Log $LogFile "Sending mail with password to $To"
     $Subject = $MailTempPasswordSubject -replace('##FullName##',$FullName)
-    $Body = $MailTempPasswordText -replace('##ManagerFullName##',$ManagerFullName) -replace('##UserName##',$UserName) -replace('##Password##',$Password) 
-  }
-    Elseif ($PwdToUsr) {
-      Write-Log $LogFile "Sending mail with the temporary password to $Mail"
-      $Subject = "Password for de-prod.dk"
-      $Body = "Dear $FullName,<BR><BR>This is your temporary password: $PwdToUsr<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
-
-      $SMTPServer = "gwsmtp-07.de-prod.dk"
-      If ($MailAttachments -eq $Null) {
-        Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
-        } 
-        Else {
-          Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding Unicode -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
-        }  
+    $Body = $MailTempPasswordText -replace('##ManagerFullName##',$ManagerFullName) -replace('##UserName##',$UserName) -replace('##Password##',$Passwd)
+   }
+   User {
+    # Write-Log $LogFile "Sending mail with the temporary password to $To"
+    $Subject = "Password for de-prod.dk"
+    $Body = "Dear $FullName,<BR><BR>This is your temporary password: $PwdToUsr<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
+   }  
+  } 
+  $SMTPServer = "gwsmtp-07.de-prod.dk"
+  If ($null -eq $MailAttachments) {
+    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
     } 
-} #End Send-SDMail
+    Else {
+      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding Unicode -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
+    }  
+} # end Send-SDMail
+
+Function Reset-DeprodPwd {
+  [CmdletBinding()]
+  param (
+      [Paramater()]
+      [string]
+      $Username
+      )
+      Write-Host "Retrieving PDC for de-prod.dk"
+      ]$DC = Get-PDC -DomainName de-prod.dk
+      Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
+      $CurrentUser = (Get-Pswho).Username
+      Write-host "Locating $Username"
+      $AccountExists = $False
+      try {
+          $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname -Server $DC -ErrorAction Stop
+          $ManagerEmail = (Get-ADUser $Username -Properties *| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -property emailaddress $_.manager).emailaddress}}).ManagerEmail
+          if ($IfUserExist) {
+              $AccountExists = $true
+              $PasswordReset = $true
+              $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 1 -RequiresNumerical 1
+              $SecPass = ConvertTo-SecureString $Password-AsPlainText -Force
+              try {
+                  $PasswordReset = $true
+                  Write-Verbose "Trying to reset password for $Username"
+                  Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
+                  Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
+                  $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
+                  $To = $ManagerEmail
+              }
+              catch {
+                  $PasswordReset = $False
+              }
+              Finally {
+                  if ($PasswordReset -eq $true) {
+                      Write-Verbose "Password for $Username reset"
+                  }
+                  else {
+                      Write-Verbose "Error:Password for $Username failed to reset"
+                  }
+              }
+
+          <# Action to perform if the condition is true #>
+          }
+
+}
+
+} #end Reset-DeprodPwd
 
 write-host "Expecting input file..."
 Start-sleep 2
@@ -192,56 +242,10 @@ $file.Trim() |Set-Content $trimpath
 $users = Get-Content $trimpath
 $results = @()
 
-Function Reset-DeprodPwd {
-    [CmdletBinding()]
-    param (
-        [Paramater()]
-        [string]
-        $Username
-        )
-        Write-Host "Retrieving PDC for de-prod.dk"
-        ]$DC = Get-PDC -DomainName de-prod.dk
-        Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
-        $CurrentUser = (Get-Pswho).Username
-        Write-host "Locating $Username"
-        $AccountExists = $False
-        try {
-            $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname -Server $DC -ErrorAction Stop
-            $ManagerEmail = (Get-ADUser $Username -Properties *| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -property emailaddress $_.manager).emailaddress}}).ManagerEmail
-            if ($IfUserExist) {
-                $AccountExists = $true
-                $PasswordReset = $true
-                $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 1 -RequiresNumerical 1
-                $SecPass = ConvertTo-SecureString $Password-AsPlainText -Force
-                try {
-                    $PasswordReset = $true
-                    Write-Verbose "Trying to reset password for $Username"
-                    Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
-                    Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
-                    $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
-                    $Mail = $ManagerEmail
-                }
-                catch {
-                    $PasswordReset = $False
-                }
-                Finally {
-                    if ($PasswordReset -eq $true) {
-                        Write-Verbose "Password for $Username reset"
-                    }
-                    else {
-                        Write-Verbose "Error:Password for $Username failed to reset"
-                    }
-                }
 
-            <# Action to perform if the condition is true #>
-            }
-
-}
-
-} #end Reset-DeprodPwd
 foreach($user in $users){
 
-    $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 1 -RequiresNumerical 1 
+    $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true 
     $NewPwd = ConvertTo-SecureString $Password-AsPlainText -Force
     # Set-ADAccountPassword $user -NewPassword $NewPwd -Reset
     # Set-ADUser -Identity $user -ChangePasswordAtLogon $true
