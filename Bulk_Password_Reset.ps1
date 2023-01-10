@@ -11,7 +11,7 @@ Function Write-Log {
     [Parameter(Position = 0)] [string]$File,
     [Parameter(Position = 1)] [string]$Who,
     [Parameter(Position = 2)] [string]$Data,
-    [Parameter(Position = 3)] [string]$Level
+    [Parameter(Mandatory, Position = 3)] [ValidateSet("Info", "Warning", "Error")]$Level
   )
   
   $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K") #Datetime in UTC
@@ -52,6 +52,7 @@ Function Get-PDC {
       catch {
         $Error[0]
         Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red
+        Write-Log -File $logpath -Who $PsWho -Level Error -Data "PDC could not be found for $DomainName"
         Break
         $PDC = $Null
       }
@@ -64,6 +65,7 @@ Function Get-PDC {
       catch {
         $Error[0]
         Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red
+        Write-Log -File $logpath -Who $PsWho -Level Error -Data "PDC could not be found for $DomainName"
         Break
         $PDC = $Null
       }
@@ -189,17 +191,19 @@ Function Reset-DeprodPwd {
       Write-Host "Retrieving PDC for de-prod.dk"
       ]$DC = Get-PDC -DomainName de-prod.dk
       Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
-      $CurrentUser = (Get-Pswho).Username
       Write-host "Locating $Username"
       $AccountExists = $False
       try {
           $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname -Server $DC -ErrorAction Stop
-          $ManagerEmail = (Get-ADUser $Username -Properties *| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -property emailaddress $_.manager).emailaddress}}).ManagerEmail
+          
           if ($IfUserExist) {
               $AccountExists = $true
               $PasswordReset = $true
-              $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase 1 -RequiresNumerical 1
+              $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
               $SecPass = ConvertTo-SecureString $Password-AsPlainText -Force
+              $ManagerEmail = (Get-ADUser $Username -Properties * -Server $DC| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -server $DC -property emailaddress $_.manager).emailaddress}}).ManagerEmail
+              $ManagerFulLName = (get-aduser $Username -Server $DC -Properties manager).manager |get-aduser
+              $ManagerFulLName = $ManagerFulLName.Givenname + " " + $ManagerFulLName.Surname
               try {
                   $PasswordReset = $true
                   Write-Verbose "Trying to reset password for $Username"
@@ -207,6 +211,7 @@ Function Reset-DeprodPwd {
                   Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
                   $To = $ManagerEmail
+                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $NewPwd  
               }
               catch {
                   $PasswordReset = $False
