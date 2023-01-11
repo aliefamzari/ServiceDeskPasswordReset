@@ -135,6 +135,7 @@ Function New-RandomizedPassword {
     return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
 
+
 Function Send-SDMail {
   [CmdletBinding()]
   param (
@@ -155,9 +156,9 @@ Function Send-SDMail {
     $LogFile
   )
   # $PAMUsername = $Username
-  $Username = 'almaz'
+  
   $MailTempPasswordSubject = "Temporary de-prod.dk password  for ##Fullname##"
-  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##: ##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
+  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
   [Array]$MailAttachments = $null
   Write-Host "Sending mail"
   $From = "Ørsted SD AAC <SD_Assistance@orsted.com>"
@@ -175,10 +176,10 @@ Switch ($SendPwdTo) {
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
   If ($null -eq $MailAttachments) {
-    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
+    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding UTF8 -SmtpServer $SMTPServer
     } 
     Else {
-      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding Unicode -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
+      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding UTF8 -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
     }  
 } # end Send-SDMail
 
@@ -189,29 +190,30 @@ Function Reset-DeprodPwd {
       [string]
       $Username
       )
+      $StartTime = get-date 
       Write-Host "Retrieving PDC for de-prod.dk"
       $DC = Get-PDC -DomainName de-prod.dk
       Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
       Write-host "Locating $Username"
       $AccountExists = $False
       try {
-          $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname -Server $DC -ErrorAction Stop
+          $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname,Manager -Server $DC -ErrorAction Stop
           if ($IfUserExist) {
               $AccountExists = $true
               $PasswordReset = $true
               $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
               $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
-              $ManagerEmail = (Get-ADUser $Username -Properties * -Server $DC| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -server $DC -property emailaddress $_.manager).emailaddress}}).ManagerEmail
-              $ManagerFulLName = (get-aduser $Username -Server $DC -Properties manager).manager |get-aduser
-              $ManagerFulLName = $ManagerFulLName.Givenname + " " + $ManagerFulLName.Surname
+              $Mgr = $IfUserExist.manager |Get-ADuser -server $DC -Properties *| Select-Object mail,givenname,surname
+              $ManagerEmail = $Mgr.mail
+              $ManagerFulLName = $Mgr.Givenname + " " + $Mgr.Surname
               try {
                   $PasswordReset = $true
                   Write-Verbose "Trying to reset password for $Username"
                   # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
-                  $To = $ManagerEmail
-                  # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password 
+                  $To = 'almaz@orsted.com' #$ManagerEmail
+                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password 
               }
               catch {
                   $PasswordReset = $False
@@ -230,6 +232,8 @@ Function Reset-DeprodPwd {
           catch {
             Write-host "Account $username notexist"
           }
+          $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
+"Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
 } #end Reset-DeprodPwd
 
 # write-host "Expecting input file..."
