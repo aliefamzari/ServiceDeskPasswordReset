@@ -1,11 +1,12 @@
 <# 
  Author Alif Amzari Mohd Azamee
- Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (hard to see) character such as O,0,o,l,I,1. 
+ Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail 
  Contain external function Get-PSWho, Get-PDC
 #>
 Import-Module ActiveDirectory
 $PsWho = $env:USERNAME
+$logpath = 'c:\app\write-log.log'
 Function Write-Log {
   Param(
     [Parameter(Position = 0)] [string]$File,
@@ -184,37 +185,37 @@ Switch ($SendPwdTo) {
 Function Reset-DeprodPwd {
   [CmdletBinding()]
   param (
-      [Paramater()]
+      [Parameter()]
       [string]
       $Username
       )
       Write-Host "Retrieving PDC for de-prod.dk"
-      ]$DC = Get-PDC -DomainName de-prod.dk
+      $DC = Get-PDC -DomainName de-prod.dk
       Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
       Write-host "Locating $Username"
       $AccountExists = $False
       try {
           $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname -Server $DC -ErrorAction Stop
-          
           if ($IfUserExist) {
               $AccountExists = $true
               $PasswordReset = $true
               $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-              $SecPass = ConvertTo-SecureString $Password-AsPlainText -Force
+              $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
               $ManagerEmail = (Get-ADUser $Username -Properties * -Server $DC| Select-Object Displayname, @{Name="ManagerEmail";Expression={(get-aduser -server $DC -property emailaddress $_.manager).emailaddress}}).ManagerEmail
               $ManagerFulLName = (get-aduser $Username -Server $DC -Properties manager).manager |get-aduser
               $ManagerFulLName = $ManagerFulLName.Givenname + " " + $ManagerFulLName.Surname
               try {
                   $PasswordReset = $true
                   Write-Verbose "Trying to reset password for $Username"
-                  Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
-                  Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
+                  # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
+                  # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
                   $To = $ManagerEmail
-                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $NewPwd  
+                  # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password 
               }
               catch {
                   $PasswordReset = $False
+                  Write-Host "catch"
               }
               Finally {
                   if ($PasswordReset -eq $true) {
@@ -222,44 +223,43 @@ Function Reset-DeprodPwd {
                   }
                   else {
                       Write-Verbose "Error:Password for $Username failed to reset"
-                  }
-              }
-
-          <# Action to perform if the condition is true #>
+                  } #end else
+              } #end finally
+            } #end if              
+          } #end try
+          catch {
+            Write-host "Account $username notexist"
           }
-
-}
-
 } #end Reset-DeprodPwd
 
-write-host "Expecting input file..."
-Start-sleep 2
-Add-Type -AssemblyName System.Windows.Forms
-$FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
-$null = $FileBrowser.ShowDialog()
+# write-host "Expecting input file..."
+# Start-sleep 2
+# Add-Type -AssemblyName System.Windows.Forms
+# $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
+# $null = $FileBrowser.ShowDialog()
 
-clear-host
-$trimpath = "$env:USERPROFILE\trim.txt"
-$resultpath = "$env:USERPROFILE\result.csv"
-$file = Get-Content $FileBrowser.FileName 
-$file = $file |Out-String
-$file.Trim() |Set-Content $trimpath
-$users = Get-Content $trimpath
-$results = @()
+# clear-host
+# $trimpath = "$env:USERPROFILE\trim.txt"
+# $resultpath = "$env:USERPROFILE\result.csv"
+# $file = Get-Content $FileBrowser.FileName 
+# $file = $file |Out-String
+# $file.Trim() |Set-Content $trimpath
+# $users = Get-Content $trimpath
+# $results = @()
 
 
-foreach($user in $users){
+# foreach($user in $users){
 
-    $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true 
-    $NewPwd = ConvertTo-SecureString $Password-AsPlainText -Force
-    # Set-ADAccountPassword $user -NewPassword $NewPwd -Reset
-    # Set-ADUser -Identity $user -ChangePasswordAtLogon $true
-    $results += write-output "$user,$password"
-    write-host  $user -foregroundcolor Cyan -NoNewline; write-host "" $Password-foregroundcolor Green
-    Start-Sleep 1
-}
+#     $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true 
+#     $NewPwd = ConvertTo-SecureString $Password-AsPlainText -Force
+#     # Set-ADAccountPassword $user -NewPassword $NewPwd -Reset
+#     # Set-ADUser -Identity $user -ChangePasswordAtLogon $true
+#     $results += write-output "$user,$password"
+#     write-host  $user -foregroundcolor Cyan -NoNewline; write-host "" $Password-foregroundcolor Green
+#     Start-Sleep 1
+# }
 
-Write-Output "SAM,PASSWORD" |Out-File -FilePath $resultpath  #Header for CSV
+# Write-Output "SAM,PASSWORD" |Out-File -FilePath $resultpath  #Header for CSV
 
-$results | out-file -FilePath $resultpath -Append
-#Read-host -Prompt "Press enter to exit"    
+# $results | out-file -FilePath $resultpath -Append
+# #Read-host -Prompt "Press enter to exit"    
