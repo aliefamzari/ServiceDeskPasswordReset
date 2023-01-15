@@ -1,8 +1,9 @@
 <# 
  Author Alif Amzari Mohd Azamee
+ Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail 
- Contain external function Get-PSWho, Get-PDC
+ Contain external function Get-PDC
 #>
 Import-Module ActiveDirectory
 $PsWho = $env:USERNAME
