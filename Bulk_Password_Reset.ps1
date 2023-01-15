@@ -155,8 +155,6 @@ Function Send-SDMail {
     [String]
     $LogFile
   )
-  # $PAMUsername = $Username
-  
   $MailTempPasswordSubject = "Temporary de-prod.dk password  for ##Fullname##"
   $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
   [Array]$MailAttachments = $null
@@ -171,7 +169,7 @@ Switch ($SendPwdTo) {
    User {
     # Write-Log $LogFile "Sending mail with the temporary password to $To"
     $Subject = "Password for de-prod.dk"
-    $Body = "Dear $FullName,<BR><BR>This is your temporary password: $PwdToUsr<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
+    $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
    }  
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
@@ -209,32 +207,86 @@ Function Reset-DeprodPwd {
               try {
                   $PasswordReset = $true
                   Write-Verbose "Trying to reset password for $Username"
+                  Write-Log -File $logpath -who $PsWho -Level Info -Data "Trying to reset password for $Username"
                   # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
                   $To = 'almaz@orsted.com' #$ManagerEmail
                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password 
+                
               }
               catch {
-                  $PasswordReset = $False
-                  Write-Host "catch"
+                  $PasswordReset = $False                 
               }
               Finally {
                   if ($PasswordReset -eq $true) {
                       Write-Verbose "Password for $Username reset"
+                      Write-Log -File $logpath -who $PsWho -Level Info -Data "Password for $Username reset"
                   }
                   else {
                       Write-Verbose "Error:Password for $Username failed to reset"
+                      Write-Log -File $logpath -who $PsWho -Level Error -Data "Error:Password for $Username failed to reset"
                   } #end else
               } #end finally
             } #end if              
           } #end try
           catch {
             Write-host "Account $username notexist"
+            Write-Log -File $logpath -who $PsWho -Level Warning -Data "Account $username notexist"
           }
           $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
 "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
 } #end Reset-DeprodPwd
+
+Function Show-SDPasswdResetMenu {
+  write-host 'Initializing..'
+  $pswho = $env:USERNAME
+  $TitleColor = "White"
+  $MenuTitleColor = "Cyan"
+  $ItemNumberColor = "Cyan"
+  $ItemTextColor = "White"
+
+
+  while ($menu -ne '') {
+      Clear-Host
+      Write-Host -ForegroundColor $TitleColor "`n`t`t Service Desk Password Reset Menu`n"
+      Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
+      Write-Host -ForegroundColor $MenuTitleColor "`nMain Menu" -NoNewline
+      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user (and send password email to Manager)"
+      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for multi user (CSV file needed)"
+      $menu = Read-Host "`nSelection (leave blank to quit)"
+      switch ($menu) {
+          1 {  
+              Write-Host "Enter SamAccountName: " -NoNewline
+              $Username = Read-Host
+              Reset-DeProdPwd -UserName $Username
+              Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
+              Write-Host "`nPress any key to return to the previous menu"
+              [void][System.Console]::ReadKey($true)
+          }
+          2 {
+              Write-Host "Expecting an input file.... " -NoNewline
+              Start-Sleep 2
+              Add-Type -AssemblyName System.Windows.Forms
+              $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
+              $null = $FileBrowser.ShowDialog()
+              clear-host
+              $trimpath = "$env:USERPROFILE\trim.txt"
+              $file = Get-Content $FileBrowser.FileName 
+              $file = $file |Out-String
+              $file.Trim() |Set-Content $trimpath
+              $users = Get-Content $trimpath 
+              Write-Output $users
+              Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."  
+              Write-Host "`nPress any key to return to the previous menu"
+              [void][System.Console]::ReadKey($true)           
+
+          }
+      }
+  }
+} #end Show-SDPasswdResetMenu
 
 # write-host "Expecting input file..."
 # Start-sleep 2
