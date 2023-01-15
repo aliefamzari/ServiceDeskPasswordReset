@@ -5,16 +5,22 @@
  Contain forked function 'Send-SDMail 
  Contain external function Get-PDC
 #>
-Import-Module ActiveDirectory
 $PsWho = $env:USERNAME
-$logpath = 'c:\app\write-log.log'
-$scriptpath = split-path -parent $MyInvocation.MyCommand.Definition
+$ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
+
+Try {
+  Import-Module ActiveDirectory -ErrorAction Stop
+}
+Catch {
+  Write-Host "Error Importing module ActiveDirectory"
+  Break
+}
 
 Function Write-Log {
   Param(
-    [Parameter(Position = 0)] [string]$File,
-    [Parameter(Position = 1)] [string]$Who,
-    [Parameter(Position = 2)] [string]$Data,
+    # [Parameter(Position = 0)] [string]$File,
+    # [Parameter(Position = 1)] [string]$Who,
+    [Parameter(Position = 2,ValueFromPipeline = $True)] [string]$Data,
     [Parameter(Mandatory, Position = 3)] [ValidateSet("Info", "Warning", "Error")]$Level
   )
   
@@ -22,7 +28,8 @@ Function Write-Log {
   $Delimiter = " "
   $LogHeader = "DateTime" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
   $n = "`""
-    
+  $file = 'c:\app\write-log.log' 
+  $Who = $PsWho   
   
   Try {
     $LogFileExist = Test-Path $File
@@ -55,8 +62,7 @@ Function Get-PDC {
       }
       catch {
         $Error[0]
-        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red
-        Write-Log -File $logpath -Who $PsWho -Level Error -Data "PDC could not be found for $DomainName"
+        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red |Write-Log -Level Error
         Break
         $PDC = $Null
       }
@@ -68,8 +74,7 @@ Function Get-PDC {
       }
       catch {
         $Error[0]
-        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red
-        Write-Log -File $logpath -Who $PsWho -Level Error -Data "PDC could not be found for $DomainName"
+        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red |Write-Log -Level Error
         Break
         $PDC = $Null
       }
@@ -157,12 +162,10 @@ Function Send-SDMail {
     [String]
     $LogFile
   )
-  $MailSubject = Get-Content $scriptpath\subject.txt -Raw
-  $MailBody = Get-Content $scriptpath\body.txt -Raw
-
-  [Array]$MailAttachments = $null
-  Write-Host "Sending mail"
+  $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
+  $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
   $From = "Ørsted SD AAC <SD_Assistance@orsted.com>"
+  Write-Output "Sending mail" |Write-Log -Level Info
   Switch ($SendPwdTo) {     
    Manager {
     # Write-Log $LogFile "Sending mail with password to $To"
@@ -176,12 +179,8 @@ Function Send-SDMail {
    }  
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
-  If ($null -eq $MailAttachments) {
-    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
-    } 
-    Else {
-      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding Unicode -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
-    }  
+  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
+  Write-Output 'Mail Sent' |Write-Log -Level Info
 } # end Send-SDMail
 
 Function Reset-DeprodPwd {
@@ -209,8 +208,8 @@ Function Reset-DeprodPwd {
               $ManagerFulLName = $Mgr.Givenname + " " + $Mgr.Surname
               try {
                   $PasswordReset = $true
-                  Write-Verbose "Trying to reset password for $Username"
-                  Write-Log -File $logpath -who $PsWho -Level Info -Data "Trying to reset password for $Username"
+                  Write-Output "Trying to reset password for $Username" |Write-Log -level Info
+                  # Write-Log -File $LogPath-who $PsWho -Level Info -Data "Trying to reset password for $Username"
                   # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
@@ -223,19 +222,16 @@ Function Reset-DeprodPwd {
               }
               Finally {
                   if ($PasswordReset -eq $true) {
-                      Write-Verbose "Password for $Username reset"
-                      Write-Log -File $logpath -who $PsWho -Level Info -Data "Password for $Username reset"
+                      Write-Output "Password for $Username reset" |Write-Log -Level Info
                   }
                   else {
-                      Write-Verbose "Error:Password for $Username failed to reset"
-                      Write-Log -File $logpath -who $PsWho -Level Error -Data "Error:Password for $Username failed to reset"
+                      Write-Output "Error:Password for $Username failed to reset" |Write-Log -Level Error
                   } #end else
               } #end finally
             } #end if              
           } #end try
           catch {
-            Write-host "Account $username notexist"
-            Write-Log -File $logpath -who $PsWho -Level Warning -Data "Account $username notexist"
+            Write-Output "Account $username not exist" |Write-Log -Level Error
           }
           $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
 "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
@@ -290,6 +286,7 @@ Function Show-SDPasswdResetMenu {
       }
   }
 } #end Show-SDPasswdResetMenu
+Show-SDPasswdResetMenu
 
 # write-host "Expecting input file..."
 # Start-sleep 2
