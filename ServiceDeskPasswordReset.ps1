@@ -157,9 +157,8 @@ Function Send-SDMail {
     [String]
     $LogFile
   )
-  $MailTempPasswordSubject = Get-Content $scriptpath\subject.txt
-  #$MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
-  $MailTempPasswordText = Get-Content $scriptpath\body.txt
+  $MailSubject = Get-Content $scriptpath\subject.txt -Raw
+  $MailBody = Get-Content $scriptpath\body.txt -Raw
 
   [Array]$MailAttachments = $null
   Write-Host "Sending mail"
@@ -167,8 +166,8 @@ Function Send-SDMail {
   Switch ($SendPwdTo) {     
    Manager {
     # Write-Log $LogFile "Sending mail with password to $To"
-    $Subject = $MailTempPasswordSubject -replace('##FullName##',$FullName)
-    $Body = $MailTempPasswordText -replace('##ManagerFullName##',$ManagerFullName) -replace('##UserName##',$UserName) -replace('##Password##',$Passwd)
+    $Subject = $MailSubject -replace('##FullName##',$FullName)
+    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##UserName##',$UserName) -replace('##Password##',$Passwd)
    }
    User {
     # Write-Log $LogFile "Sending mail with the temporary password to $To"
@@ -178,10 +177,10 @@ Function Send-SDMail {
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
   If ($null -eq $MailAttachments) {
-    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding UTF8 -SmtpServer $SMTPServer
+    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
     } 
     Else {
-      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding UTF8 -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
+      Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding Unicode -SmtpServer $SMTPServer -Attachments $MailAttachments -Verbose
     }  
 } # end Send-SDMail
 

@@ -1,0 +1,14 @@
+<h3>Hi ##ManagerFullname##,</h3>
+
+<p>This is the temporary password for the account belonging to <b>##Username##:</b></p>
+
+<p style="color:#B22222;"><b>##Password##</b></p>
+
+<p>Please make sure to hand-over the password to the user.</p>
+
+<p style="color:#ff0000;">You cannot reply to this email</p>
+
+<BR><BR>
+Kind regards,
+<BR>
+Ørsted SD AAC
