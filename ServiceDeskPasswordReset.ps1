@@ -8,6 +8,8 @@
 Import-Module ActiveDirectory
 $PsWho = $env:USERNAME
 $logpath = 'c:\app\write-log.log'
+$scriptpath = split-path -parent $MyInvocation.MyCommand.Definition
+
 Function Write-Log {
   Param(
     [Parameter(Position = 0)] [string]$File,
@@ -136,7 +138,6 @@ Function New-RandomizedPassword {
     return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
 
-
 Function Send-SDMail {
   [CmdletBinding()]
   param (
@@ -156,12 +157,13 @@ Function Send-SDMail {
     [String]
     $LogFile
   )
-  $MailTempPasswordSubject = "Temporary de-prod.dk password  for ##Fullname##"
-  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
+  $MailTempPasswordSubject = Get-Content $scriptpath\subject.txt
+  $MailTempPasswordText = Get-Content $scriptpath\body.txt
+  # $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
   [Array]$MailAttachments = $null
   Write-Host "Sending mail"
   $From = "Ørsted SD AAC <SD_Assistance@orsted.com>"
-Switch ($SendPwdTo) {     
+  Switch ($SendPwdTo) {     
    Manager {
     # Write-Log $LogFile "Sending mail with password to $To"
     $Subject = $MailTempPasswordSubject -replace('##FullName##',$FullName)
@@ -248,7 +250,7 @@ Function Show-SDPasswdResetMenu {
   $ItemTextColor = "White"
 
 
-  while ($menu -ne '') {
+  While ($Menu -ne '') {
       Clear-Host
       Write-Host -ForegroundColor $TitleColor "`n`t`t Service Desk Password Reset Menu`n"
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
@@ -258,7 +260,7 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multi user (CSV file needed)"
       $menu = Read-Host "`nSelection (leave blank to quit)"
-      switch ($menu) {
+      Switch ($Menu) {
           1 {  
               Write-Host "Enter SamAccountName: " -NoNewline
               $Username = Read-Host
@@ -273,7 +275,7 @@ Function Show-SDPasswdResetMenu {
               Add-Type -AssemblyName System.Windows.Forms
               $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
               $null = $FileBrowser.ShowDialog()
-              clear-host
+              Clear-host
               $trimpath = "$env:USERPROFILE\trim.txt"
               $file = Get-Content $FileBrowser.FileName 
               $file = $file |Out-String

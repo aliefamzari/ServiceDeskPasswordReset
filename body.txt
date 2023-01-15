@@ -1,0 +1,1 @@
+Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to <b>##Username##:</b><BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC 
