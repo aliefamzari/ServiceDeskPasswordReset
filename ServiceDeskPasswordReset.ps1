@@ -158,8 +158,8 @@ Function Send-SDMail {
     $LogFile
   )
   $MailTempPasswordSubject = Get-Content $scriptpath\subject.txt
-  $MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
-  # $MailTempPasswordText = Get-Content $scriptpath\body.txt
+  #$MailTempPasswordText = "Hi ##ManagerFullname##, <BR><BR>This is the temporary password for the account belonging to ##Username##:<BR><BR>##Password##<BR><BR>Please make sure to hand-over the password to the user.<BR><BR>You cannot reply to this email.<BR><BR>Kind regards,<BR>Ørsted SD AAC" 
+  $MailTempPasswordText = Get-Content $scriptpath\body.txt
 
   [Array]$MailAttachments = $null
   Write-Host "Sending mail"
