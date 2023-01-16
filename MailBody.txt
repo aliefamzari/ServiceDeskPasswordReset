@@ -1,8 +1,24 @@
 <h3>Hi ##ManagerFullname##,</h3>
 
-<p>This is the temporary password for the account belonging to <b>##Username##:</b></p>
+<p>This is the temporary password for the account belonging to <b>##FullName##:</b></p>
 
-<p style="color:#B22222;"><b>##Password##</b></p>
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-2egc{background-color:#efefef;border-color:#ffffff;text-align:left;vertical-align:top}
+.tg .tg-oxob{background-color:#ffce93;border-color:#ffffff;text-align:left;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <td class="tg-2egc">Password</td>
+    <td class="tg-oxob"><span style="font-weight:bold">##Password##</span></td>
+  </tr>
+</thead>
+</table>
 
 <p>Please make sure to hand-over the password to the user.</p>
 
@@ -11,4 +27,4 @@
 <BR><BR>
 Kind regards,
 <BR>
-Ørsted SD AAC
+##Signature##

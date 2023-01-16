@@ -4,6 +4,7 @@
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail 
  Contain external function Get-PDC
+ Encoding = ANSI (Windows 1252)
 #>
 $PsWho = $env:USERNAME
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
@@ -125,9 +126,9 @@ Function New-RandomizedPassword {
         }
         $RequiresSpecial
         {
-            $null = $PasswordCharacterArray.Add(((33..38) + (40..47) + (58..64) | Get-Random | ForEach-Object {[char]$_}))
+            $null = $PasswordCharacterArray.Add(((33..38) + (40..43) + (45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
             $PasswordLength = $PasswordLength - 1
-            $null = $CharacterSpaceArray.Add((33..38) + (40..47) + (58..64))
+            $null = $CharacterSpaceArray.Add((33..38) + (40..43) + (45,47,63,64))
         }
     }
     # Add a lowercase character. Excluded 'l' and 'o'
@@ -164,13 +165,13 @@ Function Send-SDMail {
   )
   $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
   $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
-  $From = "Ã˜rsted SD AAC <SD_Assistance@orsted.com>"
-  Write-Output "Sending mail" |Write-Log -Level Info
+  $From = "Ørsted SD AAC <SD_Assistance@orsted.com>" 
+  Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
     # Write-Log $LogFile "Sending mail with password to $To"
     $Subject = $MailSubject -replace('##FullName##',$FullName)
-    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##UserName##',$UserName) -replace('##Password##',$Passwd)
+    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd) -replace('##Signature##','Ørsted SD AAC')
    }
    User {
     # Write-Log $LogFile "Sending mail with the temporary password to $To"
@@ -179,7 +180,8 @@ Function Send-SDMail {
    }  
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
-  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -Encoding unicode -SmtpServer $SMTPServer
+  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
+
   Write-Output 'Mail Sent' |Write-Log -Level Info
 } # end Send-SDMail
 
@@ -214,8 +216,8 @@ Function Reset-DeprodPwd {
                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
                   $To = 'almaz@orsted.com' #$ManagerEmail
-                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password 
-                
+                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
+                  
               }
               catch {
                   $PasswordReset = $False                 
