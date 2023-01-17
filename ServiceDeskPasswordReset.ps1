@@ -252,10 +252,11 @@ function Reset-DeprodMulti {
   $File = Get-Content $FileBrowser.FileName 
   $file = $file |Out-String
   $file.Trim() |Set-Content $trimpath
-  $users = Get-Content $trimpath 
+  $users = (Get-Content -path $trimpath)
+  $usercount = $users.Count 
   Start-Sleep 2
   Write-Host "Input file sanitized"
-  Write-Host "Total of ($users).Count to reset"
+  Write-Host "Total of $usercount user(s) to reset"
 
   foreach ($item in $users){
     Write-host "Attempting to reset for user $item"
