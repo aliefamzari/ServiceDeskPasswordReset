@@ -3,7 +3,7 @@
  Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail 
- Contain external function Get-PDC
+ Contain forked function Get-PDC
  Encoding = ANSI (Windows 1252)
 #>
 $PsWho = $env:USERNAME
@@ -247,9 +247,9 @@ function Reset-DeprodMulti {
   $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
   $null = $FileBrowser.ShowDialog()
   Clear-host
-  write-host 'input-file loaded'
+  Write-Host "Input file loaded"
   Start-Sleep 2
-  write-host 'sanitizing input file'
+  Write-Host "Sanitizing input file"
   Start-Sleep 2
   $trimpath = "$env:USERPROFILE\trim.txt"
   $File = Get-Content $FileBrowser.FileName 
@@ -257,10 +257,11 @@ function Reset-DeprodMulti {
   $file.Trim() |Set-Content $trimpath
   $users = Get-Content $trimpath 
   Start-Sleep 2
-  write-host 'input file sanitized'
+  Write-Host "Input file sanitized"
+  Write-Host "Total of ($users).Count to reset"
 
   foreach ($item in $users){
-    Write-host "Resetting $item"
+    Write-host "Attempting to reset for user $item"
     Reset-DeprodPwd -Username $item
   }
 }
@@ -303,4 +304,4 @@ Function Show-SDPasswdResetMenu {
       }
   }
 } #end Show-SDPasswdResetMenu
-# Show-SDPasswdResetMenu
+Show-SDPasswdResetMenu
