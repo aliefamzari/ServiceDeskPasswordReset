@@ -303,4 +303,4 @@ Function Show-SDPasswdResetMenu {
       }
   }
 } #end Show-SDPasswdResetMenu
-Show-SDPasswdResetMenu
+# Show-SDPasswdResetMenu
