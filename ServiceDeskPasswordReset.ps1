@@ -184,8 +184,11 @@ Function Reset-DeprodPwd {
   param (
       [Parameter()]
       [string]
-      $Username
+      $Username,
+      [Parameter(Mandatory=$false)]
+      [Int]$PasswordLength = 12
       )
+   
       $StartTime = get-date 
       Write-Host "Retrieving PDC for de-prod.dk"
       $DC = Get-PDC -DomainName de-prod.dk
@@ -197,7 +200,7 @@ Function Reset-DeprodPwd {
           if ($IfUserExist) {
               $AccountExists = $true
               $PasswordReset = $true
-              $Password = New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+              $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
               $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
               $Mgr = $IfUserExist.manager |Get-ADuser -server $DC -Properties *| Select-Object mail,givenname,surname
               $ManagerEmail = $Mgr.mail
@@ -237,6 +240,11 @@ Function Reset-DeprodPwd {
 } #end Reset-DeprodPwd
 
 function Reset-DeprodMulti {
+  [CmdletBinding()]
+  param (
+      [Parameter(Mandatory=$false)]
+      [Int]$PasswordLength
+      )
 
   Write-Host "Expecting an input file.... " -NoNewline
   Start-Sleep 2
@@ -259,8 +267,14 @@ function Reset-DeprodMulti {
   Write-Host "Total of $usercount user(s) to reset"
 
   foreach ($item in $users){
-    Write-host "Attempting to reset for user $item"
-    Reset-DeprodPwd -Username $item
+    if ($PasswordLength -eq 0){
+      Write-host "Attempting to reset for user $item"
+      Reset-DeprodPwd -Username $item
+    }
+    else {
+      Write-host "Attempting to reset for user $item"
+      Reset-DeprodPwd -Username $item -PasswordLength $PasswordLength
+    }
   }
 }
 
@@ -287,13 +301,32 @@ Function Show-SDPasswdResetMenu {
           1 {  
               Write-Host "Enter SamAccountName: " -NoNewline
               $Username = Read-Host
-              Reset-DeProdPwd -UserName $Username
+              while ($username -eq '') {
+                Write-Host "Username cannot be empty. EnterSamAccountName: " -NoNewline
+                $Username = Read-host
+              }
+              Write-Host "Enter Password length [default is 12]: " -NoNewline
+              [int]$Passwordlength = Read-Host
+              if ($Passwordlength -eq 0) {
+                Reset-DeprodPwd -Username $Username
+              }
+              else {
+                Reset-DeprodPwd -Username $Username -PasswordLength $Passwordlength
+              }
+              # Reset-DeProdPwd -UserName $Username -PasswordLength $Passwordlength
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)
           }
           2 {
-              Reset-DeprodMulti            
+              Write-Host "Enter Password length [default is 12]: " -NoNewline
+              [int]$Passwordlength = Read-Host
+              if ($Passwordlength -eq 0) {
+                Reset-DeprodMulti
+              }
+              else {
+                Reset-DeprodMulti -PasswordLength $Passwordlength
+              }
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."  
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)           
