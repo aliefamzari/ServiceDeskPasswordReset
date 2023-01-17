@@ -285,11 +285,12 @@ Function Show-SDPasswdResetMenu {
   $MenuTitleColor = "Cyan"
   $ItemNumberColor = "Cyan"
   $ItemTextColor = "White"
+  $ItemWarningColor = "Yellow"
 
 
   While ($Menu -ne '') {
       Clear-Host
-      Write-Host -ForegroundColor $TitleColor "`n`t`t Service Desk Password Reset Menu`n"
+      Write-Host -ForegroundColor $TitleColor "`n`t`t Ørsted Service Desk Password Reset Menu`n"
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
       Write-Host -ForegroundColor $MenuTitleColor "`nMain Menu" -NoNewline
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
@@ -302,7 +303,8 @@ Function Show-SDPasswdResetMenu {
               Write-Host "Enter SamAccountName: " -NoNewline
               $Username = Read-Host
               while ($username -eq '') {
-                Write-Host "Username cannot be empty. EnterSamAccountName: " -NoNewline
+                Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
+                Write-Host "EnterSamAccountName: " -NoNewline
                 $Username = Read-host
               }
               Write-Host "Enter Password length [default is 12]: " -NoNewline
