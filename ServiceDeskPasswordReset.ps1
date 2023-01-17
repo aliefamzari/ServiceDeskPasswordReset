@@ -159,9 +159,7 @@ Function Send-SDMail {
     [ValidateSet("Manager","User")]
     $SendPwdTo,
     [String]
-    $Passwd,
-    [String]
-    $LogFile
+    $Passwd
   )
   $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
   $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
