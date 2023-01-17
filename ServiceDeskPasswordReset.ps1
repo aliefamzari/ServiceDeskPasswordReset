@@ -126,9 +126,10 @@ Function New-RandomizedPassword {
         }
         $RequiresSpecial
         {
-            $null = $PasswordCharacterArray.Add(((33..38) + (40..43) + (45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
+            # These are the characters !"$%&()*+-/?@
+            $null = $PasswordCharacterArray.Add(((33,34,36,37,38,40,41,42,43,45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
             $PasswordLength = $PasswordLength - 1
-            $null = $CharacterSpaceArray.Add((33..38) + (40..43) + (45,47,63,64))
+            $null = $CharacterSpaceArray.Add((33,34,36,37,38,40,41,42,43,45,47,63,64))
         }
     }
     # Add a lowercase character. Excluded 'l' and 'o'
@@ -166,23 +167,19 @@ Function Send-SDMail {
   $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
   $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
   $From = "Ørsted SD AAC <SD_Assistance@orsted.com>" 
-  Write-Output "Sending mail" |Write-Log -Level Info 
+  # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
-    # Write-Log $LogFile "Sending mail with password to $To"
     $Subject = $MailSubject -replace('##FullName##',$FullName)
     $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd) -replace('##Signature##','Ørsted SD AAC')
    }
    User {
-    # Write-Log $LogFile "Sending mail with the temporary password to $To"
     $Subject = "Password for de-prod.dk"
     $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
    }  
   } 
   $SMTPServer = "gwsmtp-07.de-prod.dk"
   Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
-
-  Write-Output 'Mail Sent' |Write-Log -Level Info
 } # end Send-SDMail
 
 Function Reset-DeprodPwd {
@@ -211,7 +208,7 @@ Function Reset-DeprodPwd {
               try {
                   $PasswordReset = $true
                   Write-Output "Trying to reset password for $Username" |Write-Log -level Info
-                  # Write-Log -File $LogPath-who $PsWho -Level Info -Data "Trying to reset password for $Username"
+                  Write-host "Trying to reset password for $Username" 
                   # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
@@ -224,20 +221,49 @@ Function Reset-DeprodPwd {
               }
               Finally {
                   if ($PasswordReset -eq $true) {
-                      Write-Output "Password for $Username reset" |Write-Log -Level Info
+                      Write-Output "Password for $Username reset. Email sent to Manager" |Write-Log -Level Info
+                      Write-Host "Password for $Username reset. Email sent to Manager"
                   }
                   else {
                       Write-Output "Error:Password for $Username failed to reset" |Write-Log -Level Error
+                      Write-Host "Error:Password for $Username failed to reset" -ForegroundColor Red
                   } #end else
               } #end finally
             } #end if              
           } #end try
           catch {
             Write-Output "Account $username not exist" |Write-Log -Level Error
+            Write-Host "Error:Password for $Username failed to reset" -ForegroundColor Red
           }
           $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
 "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
 } #end Reset-DeprodPwd
+
+function Reset-DeprodMulti {
+
+  Write-Host "Expecting an input file.... " -NoNewline
+  Start-Sleep 2
+  Add-Type -AssemblyName System.Windows.Forms
+  $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
+  $null = $FileBrowser.ShowDialog()
+  Clear-host
+  write-host 'input-file loaded'
+  Start-Sleep 2
+  write-host 'sanitizing input file'
+  Start-Sleep 2
+  $trimpath = "$env:USERPROFILE\trim.txt"
+  $File = Get-Content $FileBrowser.FileName 
+  $file = $file |Out-String
+  $file.Trim() |Set-Content $trimpath
+  $users = Get-Content $trimpath 
+  Start-Sleep 2
+  write-host 'input file sanitized'
+
+  foreach ($item in $users){
+    Write-host "Resetting $item"
+    Reset-DeprodPwd -Username $item
+  }
+}
 
 Function Show-SDPasswdResetMenu {
   write-host 'Initializing..'
@@ -268,18 +294,7 @@ Function Show-SDPasswdResetMenu {
               [void][System.Console]::ReadKey($true)
           }
           2 {
-              Write-Host "Expecting an input file.... " -NoNewline
-              Start-Sleep 2
-              Add-Type -AssemblyName System.Windows.Forms
-              $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
-              $null = $FileBrowser.ShowDialog()
-              Clear-host
-              $trimpath = "$env:USERPROFILE\trim.txt"
-              $file = Get-Content $FileBrowser.FileName 
-              $file = $file |Out-String
-              $file.Trim() |Set-Content $trimpath
-              $users = Get-Content $trimpath 
-              Write-Output $users
+              Reset-DeprodMulti            
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."  
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)           
