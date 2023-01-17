@@ -304,35 +304,3 @@ Function Show-SDPasswdResetMenu {
   }
 } #end Show-SDPasswdResetMenu
 Show-SDPasswdResetMenu
-
-# write-host "Expecting input file..."
-# Start-sleep 2
-# Add-Type -AssemblyName System.Windows.Forms
-# $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
-# $null = $FileBrowser.ShowDialog()
-
-# clear-host
-# $trimpath = "$env:USERPROFILE\trim.txt"
-# $resultpath = "$env:USERPROFILE\result.csv"
-# $file = Get-Content $FileBrowser.FileName 
-# $file = $file |Out-String
-# $file.Trim() |Set-Content $trimpath
-# $users = Get-Content $trimpath
-# $results = @()
-
-
-# foreach($user in $users){
-
-#     $Password= New-RandomizedPassword -PasswordLength 12 -RequiresUppercase $true -RequiresNumerical $true 
-#     $NewPwd = ConvertTo-SecureString $Password-AsPlainText -Force
-#     # Set-ADAccountPassword $user -NewPassword $NewPwd -Reset
-#     # Set-ADUser -Identity $user -ChangePasswordAtLogon $true
-#     $results += write-output "$user,$password"
-#     write-host  $user -foregroundcolor Cyan -NoNewline; write-host "" $Password-foregroundcolor Green
-#     Start-Sleep 1
-# }
-
-# Write-Output "SAM,PASSWORD" |Out-File -FilePath $resultpath  #Header for CSV
-
-# $results | out-file -FilePath $resultpath -Append
-# #Read-host -Prompt "Press enter to exit"    
