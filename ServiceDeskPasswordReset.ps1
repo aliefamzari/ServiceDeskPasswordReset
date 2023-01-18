@@ -15,11 +15,7 @@ $SMTPServer = $Config[1]
 $DomainName = $Config[3]
 $ChangePasswordAtLogon = $Config[13]
 $OrgName = $Config[15]
-function Initializer {
-  Test-Path $ScriptPath
-  Test-Path $LogPath
-  exit 0
-}
+
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
@@ -308,7 +304,7 @@ Function Show-SDPasswdResetMenu {
   $ItemNumberColor = "Cyan"
   $ItemTextColor = "White"
   $ItemWarningColor = "Yellow"
-  # $AdmCredential = Get-AdmCred
+  $AdmCredential = Get-AdmCred
 
 
   While ($Menu -ne '') {
