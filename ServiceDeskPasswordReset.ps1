@@ -15,6 +15,11 @@ $SMTPServer = $Config[1]
 $DomainName = $Config[3]
 $ChangePasswordAtLogon = $Config[13]
 $OrgName = $Config[15]
+function Initializer {
+  Test-Path $ScriptPath
+  Test-Path $LogPath
+  exit 0
+}
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
@@ -296,6 +301,7 @@ function Reset-PwdMulti {
 
 Function Show-SDPasswdResetMenu {
   write-host 'Initializing..'
+  Initializer
   $pswho = $env:USERNAME
   $TitleColor = "White"
   $MenuTitleColor = "Cyan"
