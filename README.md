@@ -7,7 +7,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
 # Features
 
-1. The script will reset the password with the complexity meeting the criteria (12 characters, lowercase, uppercase and numbers). The script also able to reset more than 12 characters if needed. Plus it is also disregard ambiguous hard to read character such as **O,0,o,l,I,1.**
+1. The script will reset the password with the complexity meeting the criteria (12 characters, lowercase, uppercase, numbers and specials). The script also able to reset more than 12 characters if needed. Ambiguous hard to read character such as O,0,o,l,I,1. is disregarded.
 
   
 
