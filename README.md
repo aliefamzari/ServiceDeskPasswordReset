@@ -1,7 +1,7 @@
 # Introduction 
 This script developed to assist password reset procedure. The goal is to automate how Service Desk handle password to customer.
 
-Features:
+# Features:
 1. The script will reset the password with the complexity meeting the criteria (12 characters, lowercase, uppercase and numbers). The script also able to reset more than 12 characters if needed. Plus it is also disregard ambiguous hard to read character such as O,0,o,l,I,1.
 
 2. The script will automatically send the password directly to user's manager email.
