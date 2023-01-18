@@ -35,7 +35,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
   
 
-7. The global variable can be change to accommodate different environment of organization by using the *config.txt* file.
+7. The global variable can be change to accommodate different environment of organization by editing the *config.txt* file.
 
   
 
