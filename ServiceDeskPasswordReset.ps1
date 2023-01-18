@@ -5,9 +5,16 @@
  Contain forked function 'Send-SDMail,Get-PDC'
  Encoding = ANSI (Windows 1252)
 #>
-$PsWho = $env:USERNAME
+#GlobalVariable Read from config.txt#
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
-
+$Config = (Get-Content -Path $ScriptPath\config.txt)
+$PsWho = $env:USERNAME
+$LogPath = $Config[7]
+$MailSender = $Config[11]
+$SMTPServer = $Config[1]
+$DomainName = $Config[3]
+$ChangePasswordAtLogon = $Config[13]
+$OrgName = $Config[15]
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
@@ -15,6 +22,15 @@ Catch {
   Write-Host "Error Importing module ActiveDirectory"
   Break
 }
+Function Get-AdmCred {
+
+  $AdmUsername = read-host "ADM Username (admxxxxx)"
+  $AdmUsername = "de-prod\"+$AdmUsername
+  $AdmPassword =  read-host  "ADM password" -AsSecureString
+  # $secureString = $AdmPassword | ConvertTo-SecureString -AsPlainText -Force
+  $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword
+  $AdmCredential
+} #end Get-AdmCred 
 
 Function Write-Log {
   Param(
@@ -28,7 +44,7 @@ Function Write-Log {
   $Delimiter = " "
   $LogHeader = "DateTime" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
   $n = "`""
-  $file = 'c:\app\write-log.log' 
+  $File = $LogPath
   $Who = $PsWho   
   
   Try {
@@ -163,23 +179,23 @@ Function Send-SDMail {
   )
   $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
   $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
-  $From = "ÿrsted SD AAC <SD_Assistance@orsted.com>" 
+  $From = $MailSender
   # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
     $Subject = $MailSubject -replace('##FullName##',$FullName)
-    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd) -replace('##Signature##','ÿrsted SD AAC')
+    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd) -replace('##Signature##','ùrsted SD AAC')
    }
    User {
-    $Subject = "Password for de-prod.dk"
+    $Subject = $MailSubject -replace('##FullName##',$FullName)
     $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
    }  
   } 
-  $SMTPServer = "gwsmtp-07.de-prod.dk"
+  # $SMTPServer = $SMTPServer
   Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
 } # end Send-SDMail
 
-Function Reset-DeprodPwd {
+Function Reset-AdPwd {
   [CmdletBinding()]
   param (
       [Parameter()]
@@ -190,27 +206,27 @@ Function Reset-DeprodPwd {
       )
    
       $StartTime = get-date 
-      Write-Host "Retrieving PDC for de-prod.dk"
-      $DC = Get-PDC -DomainName de-prod.dk
-      Write-Host "Using $($DC.HostName) as DC for the de-prod.dk domain"
+      Write-Host "Retrieving PDC for $DomainName"
+      $DC = Get-PDC -DomainName $DomainName
+      Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
       Write-host "Locating $Username"
       $AccountExists = $False
       try {
+          Write-Output "Trying to reset password for $Username" |Write-Log -level Info
+          Write-host "Trying to reset password for $Username" 
           $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname,Manager -Server $DC -ErrorAction Stop
           if ($IfUserExist) {
               $AccountExists = $true
               $PasswordReset = $true
-              $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+              $script:Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
               $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
               $Mgr = $IfUserExist.manager |Get-ADuser -server $DC -Properties *| Select-Object mail,givenname,surname
               $ManagerEmail = $Mgr.mail
               $ManagerFulLName = $Mgr.Givenname + " " + $Mgr.Surname
               try {
                   $PasswordReset = $true
-                  Write-Output "Trying to reset password for $Username" |Write-Log -level Info
-                  Write-host "Trying to reset password for $Username" 
-                  # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -ErrorAction Stop
-                  # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true
+                  # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                  # Set-ADUser -Identity $Username -ChangePasswordAtLogon $ChangePasswordAtLogon -Credential $AdmCredential
                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
                   $To = 'almaz@orsted.com' #$ManagerEmail
                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
@@ -237,9 +253,9 @@ Function Reset-DeprodPwd {
           }
           $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
 "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
-} #end Reset-DeprodPwd
+} #end Reset-AdPwd
 
-function Reset-DeprodMulti {
+function Reset-PwdMulti {
   [CmdletBinding()]
   param (
       [Parameter(Mandatory=$false)]
@@ -269,14 +285,14 @@ function Reset-DeprodMulti {
   foreach ($item in $users){
     if ($PasswordLength -eq 0){
       Write-host "Attempting to reset for user $item"
-      Reset-DeprodPwd -Username $item
+      Reset-AdPwd -Username $item
     }
     else {
       Write-host "Attempting to reset for user $item"
-      Reset-DeprodPwd -Username $item -PasswordLength $PasswordLength
+      Reset-AdPwd -Username $item -PasswordLength $PasswordLength
     }
   }
-}
+} #end Reset-PwdMulti
 
 Function Show-SDPasswdResetMenu {
   write-host 'Initializing..'
@@ -286,11 +302,12 @@ Function Show-SDPasswdResetMenu {
   $ItemNumberColor = "Cyan"
   $ItemTextColor = "White"
   $ItemWarningColor = "Yellow"
+  # $AdmCredential = Get-AdmCred
 
 
   While ($Menu -ne '') {
       Clear-Host
-      Write-Host -ForegroundColor $TitleColor "`n`t`t ÿrsted Service Desk Password Reset Menu`n"
+      Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Menu`n"
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
       Write-Host -ForegroundColor $MenuTitleColor "`nMain Menu" -NoNewline
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
@@ -310,12 +327,16 @@ Function Show-SDPasswdResetMenu {
               Write-Host "Enter Password length [default is 12]: " -NoNewline
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -eq 0) {
-                Reset-DeprodPwd -Username $Username
+                Reset-AdPwd -Username $Username
+                Write-Host "Password is: " -NoNewline 
+                Write-Host $script:Password -ForegroundColor Yellow
               }
               else {
-                Reset-DeprodPwd -Username $Username -PasswordLength $Passwordlength
+                Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
+                Write-Host "Password is: " -NoNewline 
+                Write-Host $script:Password -ForegroundColor Yellow
               }
-              # Reset-DeProdPwd -UserName $Username -PasswordLength $Passwordlength
+              # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)
@@ -324,10 +345,10 @@ Function Show-SDPasswdResetMenu {
               Write-Host "Enter Password length [default is 12]: " -NoNewline
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -eq 0) {
-                Reset-DeprodMulti
+                Reset-PwdMulti
               }
               else {
-                Reset-DeprodMulti -PasswordLength $Passwordlength
+                Reset-PwdMulti -PasswordLength $Passwordlength
               }
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."  
               Write-Host "`nPress any key to return to the previous menu"
