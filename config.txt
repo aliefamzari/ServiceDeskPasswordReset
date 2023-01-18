@@ -5,7 +5,7 @@ de-prod.dk
 #ScriptPath
 split-path -parent $MyInvocation.MyCommand.Definition
 #LogPath
-ac:\app\write-log.log
+$env:USERPROFILE\sdpwd.log
 #PasswordLength
 12
 #MailSender

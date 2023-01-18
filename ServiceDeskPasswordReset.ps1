@@ -297,7 +297,6 @@ function Reset-PwdMulti {
 
 Function Show-SDPasswdResetMenu {
   write-host 'Initializing..'
-  Initializer
   $pswho = $env:USERNAME
   $TitleColor = "White"
   $MenuTitleColor = "Cyan"
