@@ -241,6 +241,8 @@ Function Reset-AdPwd {
                   if ($PasswordReset -eq $true) {
                       Write-Output "Password for $Username reset. Email sent to Manager" |Write-Log -Level Info
                       Write-Host "Password for $Username reset. Email sent to Manager"
+                      Write-Host "Password is: " -NoNewline
+                      Write-host "$Password" -ForegroundColor Green
                   }
                   else {
                       Write-Output "Error:Password for $Username failed to reset" |Write-Log -Level Error
@@ -330,23 +332,9 @@ Function Show-SDPasswdResetMenu {
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -eq 0) {
                 Reset-AdPwd -Username $Username
-                if ($PasswordReset){
-                  Write-Host "Password is: " -NoNewline
-                  Write-Host $script:Password -ForegroundColor Yellow
-                } 
-                else {
-                  Write-Host 'Password not reset'
-                }
               }
               else {
                 Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
-                if ($PasswordReset){
-                  Write-Host "Password is: " -NoNewline
-                  Write-Host $script:Password -ForegroundColor Yellow
-                } 
-                else {
-                  Write-Host 'Password not reset'
-                }
               }
               # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
