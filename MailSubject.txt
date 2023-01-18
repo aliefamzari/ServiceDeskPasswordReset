@@ -1,1 +1,1 @@
-"Temporary de-prod.dk password for ##Fullname##"
+"Temporary ##DomainName## password for ##Fullname##"
