@@ -184,7 +184,7 @@ Function Send-SDMail {
   # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
-    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName## ',$DomainName)
+    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
     $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
    }
    User {
