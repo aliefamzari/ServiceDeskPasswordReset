@@ -193,7 +193,7 @@ Function Send-SDMail {
    }  
   } 
   # $SMTPServer = $SMTPServer
-  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
+  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8 -Port 587 -UseSsl
 } # end Send-SDMail
 
 Function Reset-AdPwd {
