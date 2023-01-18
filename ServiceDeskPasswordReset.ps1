@@ -184,7 +184,7 @@ Function Send-SDMail {
   Switch ($SendPwdTo) {     
    Manager {
     $Subject = $MailSubject -replace('##FullName##',$FullName)
-    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd) -replace('##Signature##','ùrsted SD AAC')
+    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
    }
    User {
     $Subject = $MailSubject -replace('##FullName##',$FullName)
