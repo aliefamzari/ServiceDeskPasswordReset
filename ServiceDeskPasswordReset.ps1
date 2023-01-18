@@ -193,7 +193,7 @@ Function Send-SDMail {
    }  
   } 
   # $SMTPServer = $SMTPServer
-  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8 -Port 587 -UseSsl
+  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
 } # end Send-SDMail
 
 Function Reset-AdPwd {
@@ -215,8 +215,9 @@ Function Reset-AdPwd {
       try {
           Write-Output "Trying to reset password for $Username" |Write-Log -level Info
           Write-host "Trying to reset password for $Username" 
-          $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname,Manager -Server $DC -ErrorAction Stop
-          if ($IfUserExist) {
+          $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname,Manager,Enabled -Server $DC -ErrorAction Stop
+          $ifUserEnabled = $IfUserExist.Enabled
+          if ($IfUserExist -and $ifUserEnabled) {
               $AccountExists = $true
               $PasswordReset = $true
               $script:Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
@@ -329,13 +330,23 @@ Function Show-SDPasswdResetMenu {
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -eq 0) {
                 Reset-AdPwd -Username $Username
-                Write-Host "Password is: " -NoNewline 
-                Write-Host $script:Password -ForegroundColor Yellow
+                if ($PasswordReset){
+                  Write-Host "Password is: " -NoNewline
+                  Write-Host $script:Password -ForegroundColor Yellow
+                } 
+                else {
+                  Write-Host 'Password not reset'
+                }
               }
               else {
                 Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
-                Write-Host "Password is: " -NoNewline 
-                Write-Host $script:Password -ForegroundColor Yellow
+                if ($PasswordReset){
+                  Write-Host "Password is: " -NoNewline
+                  Write-Host $script:Password -ForegroundColor Yellow
+                } 
+                else {
+                  Write-Host 'Password not reset'
+                }
               }
               # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
               Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
