@@ -16,6 +16,7 @@ $DomainName = $Config[3]
 $ChangePasswordAtLogon = $Config[13]
 $OrgName = $Config[15]
 $SMSAddress = $Config[17]
+$DisplayPasswordOnScreen = $Config[19]
 
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
@@ -275,7 +276,9 @@ Function Reset-AdPwd {
           if ($PasswordisReset){
               Write-Host "Password for $Username reset."
               Write-log -level info -data "Password for $Username reset."
-              Write-host "Password is: $Password"
+              if ($DisplayPasswordOnScreen -eq '$true') {
+                Write-host "Password is: $Password"
+              }
           }
           else {
               write-host "Password for $Username not reset"
@@ -285,6 +288,7 @@ Function Reset-AdPwd {
           
       switch -regex ($MailTo) {
           Manager { if ($PasswordisReset){
+              Write-Host "Sending email password to Manager.."
               try {
                   $ManagerEmail = Get-ADuser $manager -server $DC -Properties *| Select-Object mail,givenname,surname -ErrorAction Stop
                   $ManagerEmail = $ManagerEmail.mail
@@ -311,8 +315,8 @@ Function Reset-AdPwd {
                   $To = $OfficePhone.Replace(" ","")
                   $To = $To + $SMSAddress
                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
-                  write-host "Mail sent to SMS $to"
-                  Write-Log -Level Info -data "Mail sent to SMS $to"
+                  write-host "Mail sent to $To"
+                  Write-Log -Level Info -Data "Mail sent to SMS $to"
 
               }
               catch {
@@ -346,8 +350,7 @@ Function Reset-AdPwd {
       } 
       $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
       "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
-}
-
+} #end Reset-AdPwd
 
 
 function Reset-PwdMulti {

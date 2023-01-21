@@ -16,3 +16,5 @@ $True
 Ørsted
 #SMSaddress
 @sms.orsted.com
+#DisplayPasswordOnScreen
+$false
