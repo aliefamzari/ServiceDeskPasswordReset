@@ -189,11 +189,11 @@ Function Send-SDMail {
     $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
    }
    User {
-    $Subject = $MailSubject -replace('##FullName##',$FullName)
+    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
     $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
    }
    SMS {
-    $Subject = $MailSubject -replace('##FullName##',$FullName)
+    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
     $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this message.<BR><BR>Kind regards"
    }  
   } 
@@ -298,6 +298,7 @@ Function Reset-AdPwd {
               catch {
                   $MailSentToManager = $False
                   Write-host 'Mail to Manager not sent'
+                  write-log -level Error -data 'Mail to Manager not sent'
               }
 
           }
@@ -309,13 +310,15 @@ Function Reset-AdPwd {
                   $FullName = $ADUser.GivenName + " " + $ADUser.surname
                   $To = $OfficePhone.Replace(" ","")
                   $To = $To + $SMSAddress
-                  # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
+                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
                   write-host "Mail sent to SMS $to"
+                  Write-Log -Level Info -data "Mail sent to SMS $to"
 
               }
               catch {
                   $SMSisSent = $false
                   write-host 'SMS not Sent'
+                  Write-Log -level Error -Data 'SMS not Sent'
               }
           }
 
@@ -328,11 +331,13 @@ Function Reset-AdPwd {
                   $To = $ADUser.UserPrincipalName
                   # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
                   Write-host 'Mail sent to User'
+                  Write-Log -Level Info -data 'Mail sent to User'
 
               }
               catch {
                   $MailSentToUser = $false
                   Write-host "Mail not sent to user"
+                  Write-Log -level Error -data 'Mail not sent to user'
               }
           }
 
@@ -343,69 +348,7 @@ Function Reset-AdPwd {
       "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
 }
 
-# Function Reset-AdPwd {
-#   [CmdletBinding()]
-#   param (
-#       [Parameter()]
-#       [string]
-#       $Username,
-#       [Parameter(Mandatory=$false)]
-#       [Int]$PasswordLength = 12
-#       )
-   
-#       $StartTime = get-date 
-#       Write-Host "Retrieving PDC for $DomainName"
-#       $DC = Get-PDC -DomainName $DomainName
-#       Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
-#       Write-host "Locating $Username"
-#       $AccountExists = $False
-#       try {
-#           Write-Output "Trying to reset password for $Username" |Write-Log -level Info
-#           Write-host "Trying to reset password for $Username" 
-#           $IfUserExist = Get-ADUser $Username -Properties Givenname,Surname,Manager,Enabled -Server $DC -ErrorAction Stop
-#           $ifUserEnabled = $IfUserExist.Enabled
-#           if ($IfUserExist -and $ifUserEnabled) {
-#               $AccountExists = $true
-#               $PasswordReset = $true
-#               $script:Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-#               $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
-#               $Mgr = $IfUserExist.manager |Get-ADuser -server $DC -Properties *| Select-Object mail,givenname,surname
-#               $ManagerEmail = $Mgr.mail
-#               $ManagerFulLName = $Mgr.Givenname + " " + $Mgr.Surname
-#               try {
-#                   $PasswordReset = $true
-#                   # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-#                   # Set-ADUser -Identity $Username -ChangePasswordAtLogon $ChangePasswordAtLogon -Credential $AdmCredential
-#                   $Fullname = $IfUserExist.Givenname + " " + $IfUserExist.surname
-#                   $To = 'almaz@orsted.com' #$ManagerEmail
-#                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
-                  
-#               }
-#               catch {
-#                   $Script:PasswordReset = $False                 
-#               }
-#               Finally {
-#                   if ($PasswordReset -eq $true) {
-#                       Write-Output "Password for $Username reset. Email sent to Manager" |Write-Log -Level Info
-#                       Write-Host "Password for $Username reset. Email sent to Manager"
-#                       $script:IsReset = $true
-#                       # Write-Host "Password is: " -NoNewline
-#                       # Write-host "$Password" -ForegroundColor Green
-#                   }
-#                   else {
-#                       Write-Output "Error:Password for $Username failed to reset" |Write-Log -Level Error
-#                       Write-Host "Error:Password for $Username failed to reset" -ForegroundColor Red
-#                   } #end else
-#               } #end finally
-#             } #end if              
-#           } #end try
-#           catch {
-#             Write-Output "Account $username not exist" |Write-Log -Level Error
-#             Write-Host "Error:Password for $Username failed to reset" -ForegroundColor Red
-#           }
-#           $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
-# "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds  
-# } #end Reset-AdPwd
+
 
 function Reset-PwdMulti {
   [CmdletBinding()]
@@ -465,7 +408,10 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for a user (and send password email to Manager)"
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user and send to SMS"
+      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multi user (CSV file needed)"
+      
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
           1 {  
@@ -502,6 +448,27 @@ Function Show-SDPasswdResetMenu {
               [void][System.Console]::ReadKey($true)
           }
           2 {
+            Write-Host "Enter SamAccountName: " -NoNewline
+            $Username = Read-Host
+            while ($username -eq '') {
+              Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
+              Write-Host "EnterSamAccountName: " -NoNewline
+              $Username = Read-host
+            }
+            Write-Host "Enter Password length [default is 12]: " -NoNewline
+            [int]$Passwordlength = Read-Host
+            if ($Passwordlength -eq 0) {
+              Reset-AdPwd -Username $Username -MailTo SMS
+            }
+            else {
+              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
+            }
+            Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
+            Write-Host "`nPress any key to return to the previous menu"
+            [void][System.Console]::ReadKey($true)
+            
+          }
+          3 {
               Write-Host "Enter Password length [default is 12]: " -NoNewline
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -eq 0) {
