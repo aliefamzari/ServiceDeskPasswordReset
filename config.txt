@@ -17,4 +17,4 @@ $True
 #SMSaddress
 @sms.orsted.com
 #DisplayPasswordOnScreen
-$false
+$true

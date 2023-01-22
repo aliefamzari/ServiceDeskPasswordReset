@@ -182,6 +182,7 @@ Function Send-SDMail {
   )
   $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
   $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
+  $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.txt -Raw
   $From = $MailSender
   # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
@@ -195,11 +196,16 @@ Function Send-SDMail {
    }
    SMS {
     $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
-    $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this message.<BR><BR>Kind regards"
+    $Body = $MailBodySMS -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
    }  
   } 
   # $SMTPServer = $SMTPServer
-  Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
+  try {
+    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
+  }
+  catch {
+    $SendSDMail = $false
+  }
 } # end Send-SDMail
 
 Function Reset-AdPwd {
@@ -308,8 +314,9 @@ Function Reset-AdPwd {
           }
 
           }
-          SMS { if ($PasswordisReset) {
-              try {
+          SMS { if ($PasswordisReset -and $OfficePhoneisExist) {
+              Write-Host "Sending SMS to $OfficePhone.."
+                try {
                   $SMSisSent = $true
                   $FullName = $ADUser.GivenName + " " + $ADUser.surname
                   $To = $OfficePhone.Replace(" ","")
@@ -318,13 +325,13 @@ Function Reset-AdPwd {
                   write-host "Mail sent to $To"
                   Write-Log -Level Info -Data "Mail sent to SMS $to"
 
-              }
-              catch {
+                } 
+                  catch {
                   $SMSisSent = $false
                   write-host 'SMS not Sent'
                   Write-Log -level Error -Data 'SMS not Sent'
+                  }
               }
-          }
 
           }
 

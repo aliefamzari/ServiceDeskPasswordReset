@@ -1,1 +1,1 @@
-"Temporary ##DomainName## password for ##Fullname##"
+Temporary ##DomainName## password for ##Fullname##
