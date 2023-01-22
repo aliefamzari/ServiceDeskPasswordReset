@@ -1,0 +1,8 @@
+<p>Dear ##FullName##,<BR><BR>This is your temporary password:</p>
+
+##Password##<BR><BR>
+You cannot reply to this message.
+<BR><BR>
+Kind regards,
+<BR>
+Ørsted SD AAC
