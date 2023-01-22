@@ -8,7 +8,8 @@
 #GlobalVariable Read from config.txt#
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 $Config = (Get-Content -Path $ScriptPath\config.txt)
-$PsWho = $env:USERNAME
+# $PsWho = $env:USERNAME
+# $PsWho = $AdmCredential.username
 $LogPath = $Config[7]
 $MailSender = $Config[11]
 $SMTPServer = $Config[1]
@@ -17,7 +18,7 @@ $ChangePasswordAtLogon = $Config[13]
 $OrgName = $Config[15]
 $SMSAddress = $Config[17]
 $DisplayPasswordOnScreen = $Config[19]
-
+# $AdmCredential = Get-AdmCred
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
@@ -48,8 +49,9 @@ Function Write-Log {
   $LogHeader = "DateTime" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
   $n = "`""
   $File = $LogPath
-  $Who = $PsWho   
-  
+  $Who = $AdmCredential.UserName   
+  $b = "["
+  $c = "]"
   Try {
     $LogFileExist = Test-Path $File
     if (!$LogFileExist) {
@@ -60,7 +62,7 @@ Function Write-Log {
     Write-Host "Error writing to log file $File - $Data" -ForegroundColor Red
   } 
   Finally {
-      $TimeStamp + $Delimiter + $Who + $Delimiter + $Level + $Delimiter + $n+$Data+$n | Out-File $File -Append -ErrorAction Stop -Encoding UTF8
+      $TimeStamp + $Delimiter + $b+$Who+$c + $Delimiter + $Level + $Delimiter + $n+$Data+$n | Out-File $File -Append -ErrorAction Stop -Encoding UTF8
   } #End Catch
   
 } #End Write-log
@@ -297,7 +299,7 @@ Function Reset-AdPwd {
                 }
               else {
                 write-host "[$Username]Error:Password not reset" -ForegroundColor Red
-                Write-log -level Error -data "[$Username]Password for not reset"
+                Write-log -level Error -data "[$Username]Password not reset"
               } 
   
          function SendMgr {
@@ -469,7 +471,7 @@ Function Show-SDPasswdResetMenu {
                 Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
               }
               # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
-              Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
+              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)
           }
@@ -489,7 +491,7 @@ Function Show-SDPasswdResetMenu {
             else {
               Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
             }
-            Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."
+            Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
             Write-Host "`nPress any key to return to the previous menu"
             [void][System.Console]::ReadKey($true)
             
@@ -503,7 +505,7 @@ Function Show-SDPasswdResetMenu {
               else {
                 Reset-PwdMulti -PasswordLength $Passwordlength
               }
-              Write-Host -ForegroundColor $ItemNumberColor "`nScript execution complete."  
+              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)           
 

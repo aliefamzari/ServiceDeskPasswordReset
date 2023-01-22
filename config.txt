@@ -11,7 +11,7 @@ c:\app\write-log.log
 #MailSender
 Ørsted SD AAC <SD_Assistance@orsted.com>
 #ChangePasswordAtLogon
-$True
+$true
 #OrgName
 Ørsted
 #SMSaddress
