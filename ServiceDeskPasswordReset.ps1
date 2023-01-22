@@ -226,7 +226,7 @@ Function Reset-AdPwd {
       Write-Host "Retrieving PDC for $DomainName"
       $DC = Get-PDC -DomainName $DomainName
       Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
-      Write-host "Locating $Username"
+      Write-host "Querying $Username in Active-Directory"
 
       try {
           Write-Output "Trying to reset password for $Username" |Write-Log -level Info
@@ -279,7 +279,7 @@ Function Reset-AdPwd {
           if ($OfficePhone -and $PasswordisReset){
 
               $OfficePhoneisExist = $true
-              write-host "Office phone $Officephone"
+              # write-host "Office phone $Officephone"
           }
           else {
               write-host "Phone empty"
