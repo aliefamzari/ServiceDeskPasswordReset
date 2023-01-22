@@ -31,7 +31,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
   
 
-6. Allowed special characters are limited to these **!"$%&()*+-/?@** for compatibility and readability reason.
+6. Allowed special characters are limited to these **!"#$%&()*+-/?@** for compatibility and readability reason.
 
   
 

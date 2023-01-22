@@ -144,10 +144,10 @@ Function New-RandomizedPassword {
         }
         $RequiresSpecial
         {
-            # These are the characters !"$%&()*+-/?@
-            $null = $PasswordCharacterArray.Add(((33,34,36,37,38,40,41,42,43,45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
+            # These are the characters !"#$%&()*+-/?@
+            $null = $PasswordCharacterArray.Add(((33,34,35,36,37,38,40,41,42,43,45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
             $PasswordLength = $PasswordLength - 1
-            $null = $CharacterSpaceArray.Add((33,34,36,37,38,40,41,42,43,45,47,63,64))
+            $null = $CharacterSpaceArray.Add((33,34,35,36,37,38,40,41,42,43,45,47,63,64))
         }
     }
     # Add a lowercase character. Excluded 'l' and 'o'
@@ -188,7 +188,7 @@ Function Send-SDMail {
   Switch ($SendPwdTo) {     
    Manager {
     $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
-    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
+    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('Passwd',$Passwd)
    }
    User {
     $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
@@ -196,7 +196,7 @@ Function Send-SDMail {
    }
    SMS {
     $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
-    $Body = $MailBodySMS -replace('##FullName##',$FullName) -replace('##Password##',$Passwd)
+    $Body = $MailBodySMS -replace('##FullName##',$FullName) -replace('Passwd',$Passwd)
    }  
   } 
   # $SMTPServer = $SMTPServer
@@ -222,7 +222,7 @@ Function Reset-AdPwd {
       [Int]$PasswordLength = 12
       )
 
-      $StartTime = get-date 
+      $StartTime = get-date #Start stopwatch
       Write-Host "Retrieving PDC for $DomainName"
       $DC = Get-PDC -DomainName $DomainName
       Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
@@ -236,152 +236,167 @@ Function Reset-AdPwd {
           $Manager = $ADUser.Manager
           $OfficePhone = $ADUser.OfficePhone
           $PasswordisReset = $true
-
+          $AccountExists = $true
       }
       catch {
           $PasswordisReset = $false
-          write-host "$Username Account not exist"
-          write-log -level Error -data "$UserName account not exist"
+          $AccountExists = $false
       }
-      
-
-
-      if ($ADUser -and $Enabled -and $Manager -and $PasswordisReset){
-          $PasswordisReset = $true
-
-          $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-          $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
-          $Manager= Get-ADuser $manager -server $DC -Properties *| Select-Object mail,givenname,surname -ErrorAction Stop
-          $ManagerEmail = $Manager.mail
-          $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
-          $FullName = $ADUser.GivenName + " " + $ADUser.surname
- 
-          try {
-              $PasswordisReset = $true
-              # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-              # Set-ADUser -Identity $Username -ChangePasswordAtLogon $ChangePasswordAtLogon -Credential $AdmCredential
-              Write-Host "Reeseting password"
-
-          }
-          catch {
-              $PasswordisReset = $false
-          }
-      }
-          else {
-              $PasswordisReset = $false
-              If (!$Enabled) {
-                  write-host 'Account is Disabled'
-                  }
-                      if (!$Manager) {
-                      Write-host 'Manager is Empty'
-              }
-          }
-          if ($OfficePhone -and $PasswordisReset){
-
-              $OfficePhoneisExist = $true
-              # write-host "Office phone $Officephone"
-          }
-          else {
-              write-host "Phone empty"
-              $OfficePhoneisExist = $false
-          }
-          if ($PasswordisReset){
-              Write-Host "Password for $Username reset."
-              Write-log -level info -data "Password for $Username reset."
-              if ($DisplayPasswordOnScreen -eq '$true') {
-                Write-host "Password is: $Password"
-              }
-          }
-          else {
-              write-host "Password for $Username not reset"
-              Write-log -level Error -data "Password for $UserName not reset"
-          }
-
-       function SendMgr {
-         if ($PasswordisReset -eq $true) {
-          $To = 'almaz@orsted.com' #$ManagerEmail
-          Write-Host "Sending email password to Manager.."
-          Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
-          if ($SendSDMail -eq $false) {
-            Write-Host 'Mail to Manager not sent'
-            Write-log -level Error -data 'Mail to Manager not sent'
-          }
-          else {
-            Write-host "Mail sent to Manager $ManagerEmail"
-            write-log -level Info -data "Mail sent to Manager $ManagerEmail"
-            $ManagerEmail = $null
+      Switch ($AccountExists) {
+        True {
+          if ($ADUser -and $Enabled -and $Manager -and $PasswordisReset){
+            $PasswordisReset = $true
+  
+            $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+            $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
+            $Manager= Get-ADuser $manager -server $DC -Properties *| Select-Object mail,givenname,surname -ErrorAction Stop
+            $ManagerEmail = $Manager.mail
+            $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
+            $FullName = $ADUser.GivenName + " " + $ADUser.surname
+   
+            try {
+                $PasswordisReset = $true
+                # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                # Set-ADUser -Identity $Username -ChangePasswordAtLogon $ChangePasswordAtLogon -Credential $AdmCredential
+                Write-Host "Reeseting password"
+  
             }
-            
+            catch {
+                $PasswordisReset = $false
+            }
+          }
+            else {
+                $PasswordisReset = $false
+                If (!$Enabled) {
+                  try {
+                    $Manager = Get-ADuser $manager -server $DC | Select-Object UserPrincipalName,givenname,surname -ErrorAction Stop
+                    $ManagerEmail = $Manager.UserPrincipalName
+                    $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
+                    write-host "Manager is $ManagerFulLName. Email is $ManagerEmail"
+                  }
+                  catch {
+                    Write-host 'Manager is Empty'
+                  }
+                  finally {
+                    write-host "Account $UserName is Disabled" -ForegroundColor Yellow
+
+                  }
+
+                }
+            }
+            if ($OfficePhone -and $PasswordisReset){
+  
+                $OfficePhoneisExist = $true
+                # write-host "Office phone $Officephone"
+            }
+            else {
+                write-host "Phone empty"
+                $OfficePhoneisExist = $false
+            }
+            if ($PasswordisReset){
+                Write-Host "Password for $Username reset."
+                Write-log -level info -data "Password for $Username reset."
+                if ($DisplayPasswordOnScreen -eq '$true') {
+                  Write-host "Password is: "-NoNewline 
+                  Write-host "$Password" -ForegroundColor Cyan
+                }
+            }
+            else {
+                write-host "Password for $Username not reset"
+                Write-log -level Error -data "Password for $UserName not reset"
+            }
+  
+         function SendMgr {
+           if ($PasswordisReset -eq $true) {
+            $To = 'almaz@orsted.com' #$ManagerEmail
+            Write-Host "Sending email password to Manager.."
+            Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
+            if ($SendSDMail -eq $false) {
+              Write-Host 'Mail to Manager not sent'
+              Write-log -level Error -data 'Mail to Manager not sent'
+            }
+            else {
+              Write-host "Mail sent to Manager $ManagerEmail"
+              write-log -level Info -data "Mail sent to Manager $ManagerEmail"
+              $ManagerEmail = $null
+              }
+          } #End SendMgr
+  
+         }
+         function SendSMS {
+          $To = $OfficePhone.Replace(" ","")
+          $To = $To + $SMSAddress
+          # $To = '+60124364147'
+          Write-Host "Sending SMS to $OfficePhone.."
+          Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
+          write-host "Mail sent to $To"
+          Write-Log -Level Info -Data "Mail sent to SMS $to"
+         } #End SendSMS
+  
+        #Switch for Parameter $MailTo
+        Switch -regex ($MailTo) {
+            Manager { if ($PasswordisReset){
+                try {
+                    $MailSentToManager = $true
+                    SendMgr
+                }
+                catch {
+                    $MailSentToManager = $False
+                    Write-host 'Mail to Manager not sent'
+                    write-log -level Error -data 'Mail to Manager not sent'
+                }
+            }
+            }
+            SMS { if ($PasswordisReset) {
+                  try {
+                    if(!$OfficePhoneisExist){
+                      Write-Host "OfficePhone is empty. Sending to Manager instead"
+                      Write-Log -level Warning -Data 'OfficePhone is empty. Sending to Manager instead'
+                      SendMgr
+                    }
+                    Else {
+                      SendSMS
+                      $SMSisSent = $true
+                    }
+                  } 
+                    catch {
+                    $SMSisSent = $false
+                    write-host 'SMS not Sent'
+                    Write-Log -level Error -Data 'SMS not Sent'
+                    }
+                }
+            }
+            User { if ($PasswordisReset){
+                try {
+                    $MailSentToUser = $true
+                    $FullName = $ADUser.GivenName + " " + $ADUser.surname
+                    $To = $ADUser.UserPrincipalName
+                    # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
+                    Write-host 'Mail sent to User'
+                    Write-Log -Level Info -data 'Mail sent to User'
+                }
+                catch {
+                    $MailSentToUser = $false
+                    Write-host "Mail not sent to user"
+                    Write-Log -level Error -data 'Mail not sent to user'
+                }
+            }
+            }
+        } # End Switch Parameter
         }
 
-       }
-       function SendSMS {
-        $To = $OfficePhone.Replace(" ","")
-        $To = $To + $SMSAddress
-        # $To = '+60124364147'
-        Write-Host "Sending SMS to $OfficePhone.."
-        Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
-        write-host "Mail sent to $To"
-        Write-Log -Level Info -Data "Mail sent to SMS $to"
-       }   
-      switch -regex ($MailTo) {
-          Manager { if (($PasswordisReset) -or ($OfficePhoneisExist -eq $false)){
-              try {
-                  $MailSentToManager = $true
-                  SendMgr
-              }
-              catch {
-                  $MailSentToManager = $False
-                  Write-host 'Mail to Manager not sent'
-                  write-log -level Error -data 'Mail to Manager not sent'
-              }
-          }
+        false {
+          write-host "$Username account not exist" -ForegroundColor Yellow
+          write-log -level Error -data "$UserName account not exist"
+        }
 
-          }
-          SMS { if ($PasswordisReset) {
-                try {
-                  if($OfficePhoneisExist -eq $false){
-                    Write-Host "OfficePhone is empty. Sending to Manager instead"
-                    Write-Log -level Warning -Data 'OfficePhone is empty. Sending to Manager instead'
-                    SendMgr
-                  }
-                  Else {
-                    SendSMS
-                    $SMSisSent = $true
-                  }
-                } 
-                  catch {
-                  $SMSisSent = $false
-                  write-host 'SMS not Sent'
-                  Write-Log -level Error -Data 'SMS not Sent'
-                  }
-              }
-          }
+      }
 
-          User { if ($PasswordisReset){
-              try {
-                  $MailSentToUser = $true
-                  $FullName = $ADUser.GivenName + " " + $ADUser.surname
-                  $To = $ADUser.UserPrincipalName
-                  # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
-                  Write-host 'Mail sent to User'
-                  Write-Log -Level Info -data 'Mail sent to User'
 
-              }
-              catch {
-                  $MailSentToUser = $false
-                  Write-host "Mail not sent to user"
-                  Write-Log -level Error -data 'Mail not sent to user'
-              }
-          }
 
-          }
-          
-      } 
-      $RunTime = New-TimeSpan -Start $StartTime -End (get-date) 
+      $RunTime = New-TimeSpan -Start $StartTime -End (get-date)  #End Stop Watch
       "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
 } #end Reset-AdPwd
-
 
 function Reset-PwdMulti {
   [CmdletBinding()]

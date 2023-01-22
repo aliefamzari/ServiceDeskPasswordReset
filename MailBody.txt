@@ -15,7 +15,7 @@
 <thead>
   <tr>
     <td class="tg-2egc">Password</td>
-    <td class="tg-oxob"><span style="font-weight:bold">##Password##</span></td>
+    <td class="tg-oxob"><span style="font-weight:bold">Passwd</span></td>
   </tr>
 </thead>
 </table>
