@@ -1,5 +1,4 @@
-
-# Introduction
+ Introduction
 
 This script developed to assist password reset procedure. The goal is to automate how Service Desk handle password to customer.
 
@@ -11,36 +10,45 @@ This script developed to assist password reset procedure. The goal is to automat
 
   
 
-2. The script will automatically send the password directly to user's manager email.
+2. The script will have 3 main options:
+
+![image.png](/.attachments/image-9168e93e-0072-4105-8492-df5c73450ec1.png)
+
+
+3. SMS send to user's registered phone number.
+![image.png](/.attachments/image-7fb55ebd-ce4f-43b0-96f2-2307aee7d0e1.png)
+![image.png](/.attachments/image-ede145b6-e312-4f3b-8e1b-c2ec23dd98af.png)
+4. Disabled, empty manager with empty phone number user will not be reset.
+![image.png](/.attachments/image-e237dd34-d633-4f6c-b2ed-1624adbfa0ff.png)
+5. Enabled user with empty phone number, their password will be send out to manager instead.
+![image.png](/.attachments/image-2a79a6bb-5348-43c6-9195-0cf83276d1eb.png)
+
+6. [ToDo] For single user password reset, the password will be displayed on PowerShell screen, with phonetics alphabetical pronunciation.
+
+**7. If security is concern, the onscreen password output can be turn off in the config file. When multiple user option is selected, the password will not be display on screen by default.**   
 
   
 
-3. [ToDo] SMS send to user's registered phone number.
+8. The script also support bulk password reset, by supplying a text file containing ***SamAccountName***, separated with 'line breaks' as delimiter.
 
   
 
-4. [ToDo] For single user password reset, the password will be displayed on PowerShell screen, with phonetics alphabetical pronunciation. If there is security concern on displaying password on screen, this feature will be disabled.
+9. The password will have the flag '_user must changed the password during logon_'. This flag can be set to '**$False'** in *config.txt*
 
   
 
-4. The script also support bulk password reset, by supplying a text file containing ***SamAccountName***, separated with 'line breaks' as delimiter.
+10. Allowed special characters are limited to these **!"#$%&()*+-/?@** for compatibility and readability reason.
 
   
 
-5. The password will have the flag '_user must changed the password during logon_'. This flag can be set to '**$False'** in *config.txt*
+11. The global variable (script scope) can be change to accommodate different environment of organization by editing the *config.txt* file.
 
-  
+12. A separate email template file _MailBody.txt_, for immediate modification to the email sent out. 
 
-6. Allowed special characters are limited to these **!"#$%&()*+-/?@** for compatibility and readability reason.
+13. Log file for tracing. 
 
-  
-
-7. The global variable (script scope) can be change to accommodate different environment of organization by editing the *config.txt* file.
-
-8. A separate email template file _MailBody.txt_, for immediate modification to the email sent out. 
-
-9. Log file for tracing. 
-  
+14. AD specific error tracing when reset password.
+  ![image.png](/.attachments/image-0236c615-5eb5-4f3f-b0d5-2c973012e634.png)
 
 # Requirement
 
