@@ -29,7 +29,7 @@ Catch {
 Function Get-AdmCred {
 
   $AdmUsername = read-host "ADM Username (admxxxxx)"
-  $AdmUsername = "de-prod\"+$AdmUsername
+  # $AdmUsername = "$AdmUsername
   $AdmPassword =  read-host  "ADM password" -AsSecureString
   # $secureString = $AdmPassword | ConvertTo-SecureString -AsPlainText -Force
   $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword
@@ -256,12 +256,28 @@ Function Reset-AdPwd {
                 $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 try {
                     $PasswordisReset = $true
-                    # Set-ADAccountPassword -Identity $Username -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    # Set-ADUser -Identity $Username -ChangePasswordAtLogon $ChangePasswordAtLogon -Credential $AdmCredential
+                    # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
                     Write-Host "[$Username]Reseting password"
                 }
-                catch {
+                catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                     $PasswordisReset = $false
+                    Write-Host 'Authentication Error. Check your credentianls'
+                }
+                Catch [System.Management.Automation.ParameterBindingException]{
+                  $PasswordisReset = $false
+                  Write-Host "Invalid Parameter -Active Directory"
+                }
+                catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
+                  $PasswordisReset = $false
+                  Write-Host "AD service error"
+                }
+                catch [System.Management.Automation.PSArgumentException]{
+                  $PasswordisReset = $false
+                  Write-Host "Username exception"
+                }
+                catch {
+                  $PasswordisReset = $false
                 }
               }
               else {
@@ -285,7 +301,7 @@ Function Reset-AdPwd {
               if ($OfficePhone -and $PasswordisReset){
                   $OfficePhoneisExist = $true
               }
-              else {
+              elseif (!$OfficePhone) {
                 write-host "[$Username]OfficePhone is empty"
                 $OfficePhoneisExist = $false
               }
