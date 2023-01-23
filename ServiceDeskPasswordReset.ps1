@@ -233,10 +233,10 @@ Function Reset-AdPwd {
       try {
           Write-Output "[$Username]Trying to reset password for $Username" |Write-Log -level Info
           Write-host "[$Username]Trying to reset password for $Username"
-          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,officephone -ErrorAction Stop
+          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone -ErrorAction Stop
           $Enabled = $ADUser.Enabled
           $Manager = $ADUser.Manager
-          $OfficePhone = $ADUser.OfficePhone
+          $mobilephone = $ADUser.mobilephone
           $PasswordisReset = $true
           $AccountExists = $true
       }
@@ -262,19 +262,22 @@ Function Reset-AdPwd {
                 }
                 catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                     $PasswordisReset = $false
-                    Write-Host 'Authentication Error. Check your credentianls'
+                    Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
+                    Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
                 }
                 Catch [System.Management.Automation.ParameterBindingException]{
                   $PasswordisReset = $false
-                  Write-Host "Invalid Parameter -Active Directory"
+                  Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
+                  Write-log -Level Error -Data "Invalid Parameter -Active Directory"
                 }
                 catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
                   $PasswordisReset = $false
-                  Write-Host "AD service error"
+                  Write-Host "AD service error" -ForegroundColor Red
+                  Write-log -Level Error 
                 }
                 catch [System.Management.Automation.PSArgumentException]{
                   $PasswordisReset = $false
-                  Write-Host "Username exception"
+                  Write-Host "Username exception" -ForegroundColor Red
                 }
                 catch {
                   $PasswordisReset = $false
@@ -298,12 +301,12 @@ Function Reset-AdPwd {
                   }
                 }
               }
-              if ($OfficePhone -and $PasswordisReset){
-                  $OfficePhoneisExist = $true
+              if ($mobilephone -and $PasswordisReset){
+                  $mobilephoneisExist = $true
               }
-              elseif (!$OfficePhone) {
-                write-host "[$Username]OfficePhone is empty"
-                $OfficePhoneisExist = $false
+              elseif (!$mobilephone) {
+                write-host "[$Username]mobilephone is empty"
+                $mobilephoneisExist = $false
               }
               if ($PasswordisReset){
                   Write-Host "[$Username]Password reset" -ForegroundColor Cyan
@@ -320,7 +323,7 @@ Function Reset-AdPwd {
   
          function SendMgr {
            if ($PasswordisReset -eq $true) {
-            $To = 'almaz@orsted.com' #$ManagerEmail
+            $To =  almaz@orsted.com #$ManagerEmail
             Write-Host "[$Username]Sending email password to Manager.."
             Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
             if ($SendSDMail -eq $false) {
@@ -336,10 +339,10 @@ Function Reset-AdPwd {
   
          }
          function SendSMS {
-          $To = $OfficePhone.Replace(" ","")
+          $To = $mobilephone.Replace(" ","")
           $To = $To + $SMSAddress
           # $To = '+60124364147'
-          Write-Host "[$Username]Sending SMS to $OfficePhone.."
+          Write-Host "[$Username]Sending SMS to $mobilephone.."
           Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
           write-host "[$Username]Mail sent to $To"
           Write-Log -Level Info -Data "[$Username]Mail sent to SMS $to"
@@ -361,9 +364,9 @@ Function Reset-AdPwd {
             }
             SMS { if ($PasswordisReset) {
                     try {
-                      if(!$OfficePhoneisExist){
-                        Write-Host "[$Username]OfficePhone is empty. Sending to Manager instead"
-                        Write-Log -level Warning -Data "[$Username]OfficePhone is empty. Sending to Manager instead"
+                      if(!$mobilephoneisExist){
+                        Write-Host "[$Username]mobilephone is empty. Sending to Manager instead"
+                        Write-Log -level Warning -Data "[$Username]mobilephone is empty. Sending to Manager instead"
                         SendMgr
                       }
                       Else {
