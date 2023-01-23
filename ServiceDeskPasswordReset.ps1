@@ -273,7 +273,7 @@ Function Reset-AdPwd {
                 catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
                   $PasswordisReset = $false
                   Write-Host "AD service error" -ForegroundColor Red
-                  Write-log -Level Error 
+                  Write-log -Level Error "AD service error"
                 }
                 catch [System.Management.Automation.PSArgumentException]{
                   $PasswordisReset = $false
@@ -321,83 +321,83 @@ Function Reset-AdPwd {
                 Write-log -level Error -data "[$Username]Password not reset"
               } 
   
-         function SendMgr {
-           if ($PasswordisReset -eq $true) {
-            $To =  almaz@orsted.com #$ManagerEmail
-            Write-Host "[$Username]Sending email password to Manager.."
-            Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
-            if ($SendSDMail -eq $false) {
-              Write-Host "[$Username]Mail to Manager not sent"
-              Write-log -level Error -data "[$Username]Mail to Manager not sent"
-            }
-            else {
-              Write-host "[$Username]Mail sent to Manager $ManagerEmail"
-              write-log -level Info -data "[$Username]Mail sent to Manager $ManagerEmail"
-              $ManagerEmail = $null
-              }
-          } #End SendMgr
+            function SendMgr {
+              if ($PasswordisReset -eq $true) {
+                $To =  almaz@orsted.com #$ManagerEmail
+                Write-Host "[$Username]Sending email password to Manager.."
+                Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
+                if ($SendSDMail -eq $false) {
+                  Write-Host "[$Username]Mail to Manager not sent"
+                  Write-log -level Error -data "[$Username]Mail to Manager not sent"
+                }
+                else {
+                  Write-host "[$Username]Mail sent to Manager $ManagerEmail"
+                  write-log -level Info -data "[$Username]Mail sent to Manager $ManagerEmail"
+                  $ManagerEmail = $null
+                  }
+              } #End SendMgr
   
          }
-         function SendSMS {
-          $To = $mobilephone.Replace(" ","")
-          $To = $To + $SMSAddress
-          # $To = '+60124364147'
-          Write-Host "[$Username]Sending SMS to $mobilephone.."
-          Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
-          write-host "[$Username]Mail sent to $To"
-          Write-Log -Level Info -Data "[$Username]Mail sent to SMS $to"
-         } #End SendSMS
+            function SendSMS {
+              $To = $mobilephone.Replace(" ","")
+              $To = $To + $SMSAddress
+              # $To = '+60124364147'
+              Write-Host "[$Username]Sending SMS to $mobilephone.."
+              Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
+              write-host "[$Username]Mail sent to $To"
+              Write-Log -Level Info -Data "[$Username]Mail sent to SMS $to"
+            } #End SendSMS
   
           #Switch for Parameter $MailTo
-          Switch -regex ($MailTo) {
-            Manager { if ($PasswordisReset){
-                try {
-                    $MailSentToManager = $true
-                    SendMgr
+              Switch -regex ($MailTo) {
+                Manager { if ($PasswordisReset){
+                        try {
+                            $MailSentToManager = $true
+                            SendMgr
+                        }
+                        catch {
+                            $MailSentToManager = $False
+                            Write-host "[$Username]Mail to Manager not sent"
+                            write-log -level Error -data "[$Username]Mail to Manager not sent"
+                        }
+                  }
                 }
-                catch {
-                    $MailSentToManager = $False
-                    Write-host "[$Username]Mail to Manager not sent"
-                    write-log -level Error -data "[$Username]Mail to Manager not sent"
-                }
-            }
-            }
-            SMS { if ($PasswordisReset) {
-                    try {
-                      if(!$mobilephoneisExist){
-                        Write-Host "[$Username]mobilephone is empty. Sending to Manager instead"
-                        Write-Log -level Warning -Data "[$Username]mobilephone is empty. Sending to Manager instead"
-                        SendMgr
-                      }
-                      Else {
-                        SendSMS
-                        $SMSisSent = $true
-                      }
-                    } 
-                    catch {
-                    $SMSisSent = $false
-                    write-host "[$Username]SMS not Sent"
-                    Write-Log -level Error -Data "[$Username]SMS not Sent"
+                SMS { if ($PasswordisReset) {
+                        try {
+                          if(!$mobilephoneisExist){
+                            Write-Host "[$Username]mobilephone is empty. Sending to Manager instead"
+                            Write-Log -level Warning -Data "[$Username]mobilephone is empty. Sending to Manager instead"
+                            SendMgr
+                          }
+                          Else {
+                            SendSMS
+                            $SMSisSent = $true
+                          }
+                        } 
+                        catch {
+                        $SMSisSent = $false
+                        write-host "[$Username]SMS not Sent"
+                        Write-Log -level Error -Data "[$Username]SMS not Sent"
+                        }
                     }
-                }
-              }
-            User { if ($PasswordisReset){
-                try {
-                    $MailSentToUser = $true
-                    $FullName = $ADUser.GivenName + " " + $ADUser.surname
-                    $To = $ADUser.UserPrincipalName
-                    # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
-                    Write-host "[$Username]Mail sent to User"
-                    Write-Log -Level Info -data "[$Username]Mail sent to User"
-                }
-                catch {
-                    $MailSentToUser = $false
-                    Write-host "[$Username]Mail not sent to user"
-                    Write-Log -level Error -data "[$Username]Mail not sent to user"
-                }
-              }
-            }
-          } # End Switch Parameter
+                  }
+                User { if ($PasswordisReset){
+                        try {
+                            $MailSentToUser = $true
+                            $FullName = $ADUser.GivenName + " " + $ADUser.surname
+                            $To = $ADUser.UserPrincipalName
+                            # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
+                            Write-host "[$Username]Mail sent to User"
+                            Write-Log -Level Info -data "[$Username]Mail sent to User"
+                        }
+                        catch {
+                            $MailSentToUser = $false
+                            Write-host "[$Username]Mail not sent to user"
+                            Write-Log -level Error -data "[$Username]Mail not sent to user"
+                        }
+                        }
+                  }
+              } # End Switch Parameter
         } # End AccountExist = $true
         false {
           write-host "[$Username]Account not exist" -ForegroundColor Yellow
