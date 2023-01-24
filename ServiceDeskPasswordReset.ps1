@@ -6,6 +6,7 @@
  Encoding = ANSI (Windows 1252)
 #>
 #GlobalVariable Read from config.json#
+
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 $Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
 $LogPath = $Config.LogPath
@@ -479,7 +480,7 @@ Function Show-SDPasswdResetMenu {
   $ItemWarningColor = "Yellow"
   Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
   $AdmCredential = Get-AdmCred
-
+  $DisplayPasswordOnScree = Toggle
 
   While ($Menu -ne '') {
       Clear-Host
@@ -492,6 +493,9 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to user via Mobile SMS."
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
+      if ($DisplayPasswordOnScreen -eq "$true") {
+        Write-Host "DisplayPasswordOnScreen = ON" -ForegroundColor Red
+      }
       
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
@@ -555,4 +559,15 @@ Function Show-SDPasswdResetMenu {
       }
   }
 } #end Show-SDPasswdResetMenu
+
+Function Toggle {
+  $DisplayPasswordOnScreen = Read-Host "DisplayPasswordOnScreeen (Yes/No)"
+  If ($DisplayPasswordOnScreen -eq "yes") {
+    $DisplayPasswordOnScreen = $true
+  }
+  Else {
+    $DisplayPasswordOnScreen = $false
+  }
+$DisplayPasswordOnScreen
+}
 Show-SDPasswdResetMenu

@@ -1,4 +1,4 @@
- Introduction
+# Introduction
 
 This script developed to assist password reset procedure. The goal is to automate how Service Desk handle password to customer.
 
@@ -25,7 +25,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
 6. [ToDo] For single user password reset, the password will be displayed on PowerShell screen, with phonetics alphabetical pronunciation.
 
-**7. If security is concern, the onscreen password output can be turn off in the config file. When multiple user option is selected, the password will not be display on screen by default.**   
+**7. If security is concern, the onscreen password output can be turn off in the config file. When multiple user option is selected, the password will not be display on screen by default.**
 
   
 
@@ -33,7 +33,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
   
 
-9. The password will have the flag '_user must changed the password during logon_'. This flag can be set to '**$False'** in *config.txt*
+9. The password will have the flag '_user must changed the password during logon_'. This flag can be set to '**$False'** in *config.json*
 
   
 
@@ -41,7 +41,7 @@ This script developed to assist password reset procedure. The goal is to automat
 
   
 
-11. The global variable (script scope) can be change to accommodate different environment of organization by editing the *config.txt* file.
+11. The global variable (script scope) can be change to accommodate different environment of organization by editing the *config.json* file.
 
 12. A separate email template file _MailBody.txt_, for immediate modification to the email sent out. 
 
@@ -49,6 +49,8 @@ This script developed to assist password reset procedure. The goal is to automat
 
 14. AD specific error tracing when reset password.
   ![image.png](/.attachments/image-0236c615-5eb5-4f3f-b0d5-2c973012e634.png)
+![image.png](/.attachments/image-507dfba6-e40b-46eb-b8b6-b55f8cac7ed0.png)
+
 
 # Requirement
 
