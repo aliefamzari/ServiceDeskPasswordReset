@@ -5,11 +5,21 @@
  Contain forked function 'Send-SDMail,Get-PDC'
  Encoding = ANSI (Windows 1252)
 #>
-#GlobalVariable Read from config.txt#
+#GlobalVariable Read from config.json#
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
+$Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
+$LogPath = $Config.LogPath
+$MailSender = $Config.MailSender
+$SMTPServer = $Config.SmtpServer
+$DomainName = $Config.DomainName
+$ChangePasswordAtLogon = $Config.ChangePasswordAtLogon
+$OrgName = $Config.OrgName
+$SMSAddress = $Config.SMSAddress
+$DisplayPasswordOnScreen = $Config.DisplayPasswordOnScreen
+<# 
 $Config = (Get-Content -Path $ScriptPath\config.txt)
-# $PsWho = $env:USERNAME
-# $PsWho = $AdmCredential.username
+$PsWho = $env:USERNAME
+$PsWho = $AdmCredential.username
 $LogPath = $Config[7]
 $MailSender = $Config[11]
 $SMTPServer = $Config[1]
@@ -18,6 +28,8 @@ $ChangePasswordAtLogon = $Config[13]
 $OrgName = $Config[15]
 $SMSAddress = $Config[17]
 $DisplayPasswordOnScreen = $Config[19]
+#>
+
 # $AdmCredential = Get-AdmCred
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
@@ -255,14 +267,14 @@ Function Reset-AdPwd {
                 try {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
-                    Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    if ($ChangePasswordAtLogon -eq "$true") {
-                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    else {
-                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
+                    # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    # if ($ChangePasswordAtLogon -eq "$true") {
+                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                    # }
+                    # else {
+                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                    # }
+                    # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
                 }
                 catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                     $PasswordisReset = $false
@@ -484,6 +496,7 @@ Function Show-SDPasswdResetMenu {
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
           1 {  
+              Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
               Write-Host "Enter SamAccountName: " -NoNewline
               $Username = Read-Host
               while ($username -eq '') {
