@@ -446,7 +446,6 @@ function Reset-PwdMulti {
     break
 }
 else{
-  Clear-host
   Write-Host "Input file loaded"
   Start-Sleep 2
   Write-Host "Sanitizing input file"
@@ -507,7 +506,6 @@ Function Show-SDPasswdResetMenu {
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
           1 {  
-              Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
               Write-Host "Enter SamAccountName: " -NoNewline
               $Username = Read-Host
               while ($username -eq '') {
