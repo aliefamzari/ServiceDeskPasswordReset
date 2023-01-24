@@ -57,7 +57,7 @@ Function Write-Log {
   
   $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K") #Datetime in UTC
   $Delimiter = " "
-  $LogHeader = "DateTime (UTC)" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
+  $LogHeader = "DateTime(UTC)" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "[SAMAccountName]Data"
   $n = "`""
   $File = $LogPath
   $Who = $AdmCredential.UserName   
