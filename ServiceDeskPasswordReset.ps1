@@ -41,8 +41,8 @@ Catch {
 }
 Function Get-AdmCred {
 
-  $AdmUsername = read-host "ADM Username (admxxxxx)"
-  $AdmPassword =  read-host  "ADM password" -AsSecureString
+  $AdmUsername = read-host "Enter your ADM Username (admxxxxx)"
+  $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString
   $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword
   $AdmCredential
 } #end Get-AdmCred 
@@ -57,7 +57,7 @@ Function Write-Log {
   
   $TimeStamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000K") #Datetime in UTC
   $Delimiter = " "
-  $LogHeader = "DateTime" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
+  $LogHeader = "DateTime (UTC)" + $Delimiter + "PsWho" + $Delimiter + "Level" + $Delimiter + "Data"
   $n = "`""
   $File = $LogPath
   $Who = $AdmCredential.UserName   
@@ -438,6 +438,14 @@ function Reset-PwdMulti {
   Add-Type -AssemblyName System.Windows.Forms
   $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog -Property @{ InitialDirectory = [Environment]::GetFolderPath('Desktop') }
   $null = $FileBrowser.ShowDialog()
+  if (!$filebrowser.FileName) {
+    write-host
+    write-host "No file loaded"
+    write-host "Returning to main menu ..."
+    start-sleep 3
+    break
+}
+else{
   Clear-host
   Write-Host "Input file loaded"
   Start-Sleep 2
@@ -468,6 +476,8 @@ function Reset-PwdMulti {
       Reset-AdPwd -Username $item -PasswordLength $PasswordLength
     }
   }
+}
+
 } #end Reset-PwdMulti
 
 Function Show-SDPasswdResetMenu {
@@ -480,7 +490,6 @@ Function Show-SDPasswdResetMenu {
   $ItemWarningColor = "Yellow"
   Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
   $AdmCredential = Get-AdmCred
-  $DisplayPasswordOnScree = Toggle
 
   While ($Menu -ne '') {
       Clear-Host
@@ -493,9 +502,7 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to user via Mobile SMS."
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
-      if ($DisplayPasswordOnScreen -eq "$true") {
-        Write-Host "DisplayPasswordOnScreen = ON" -ForegroundColor Red
-      }
+
       
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
@@ -510,10 +517,12 @@ Function Show-SDPasswdResetMenu {
               }
               Write-Host "Enter Password length [default is 12]: " -NoNewline
               [int]$Passwordlength = Read-Host
-              if ($Passwordlength -eq 0) {
+              if ($Passwordlength -lt 12) {
+                Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
                 Reset-AdPwd -Username $Username
               }
               else {
+                Write-Host "Password Length is $PasswordLength"
                 Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
               }
               # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
@@ -531,10 +540,12 @@ Function Show-SDPasswdResetMenu {
             }
             Write-Host "Enter Password length [default is 12]: " -NoNewline
             [int]$Passwordlength = Read-Host
-            if ($Passwordlength -eq 0) {
+            if ($Passwordlength -lt 12) {
+              Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
               Reset-AdPwd -Username $Username -MailTo SMS
             }
             else {
+              Write-Host "Password Length is $PasswordLength"
               Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
             }
             Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
@@ -545,10 +556,12 @@ Function Show-SDPasswdResetMenu {
           3 {
               Write-Host "Enter Password length [default is 12]: " -NoNewline
               [int]$Passwordlength = Read-Host
-              if ($Passwordlength -eq 0) {
+              if ($Passwordlength -lt 12) {
+                Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
                 Reset-PwdMulti
               }
               else {
+                Write-Host "Password Length is $PasswordLength"
                 Reset-PwdMulti -PasswordLength $Passwordlength
               }
               Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
@@ -560,14 +573,4 @@ Function Show-SDPasswdResetMenu {
   }
 } #end Show-SDPasswdResetMenu
 
-Function Toggle {
-  $DisplayPasswordOnScreen = Read-Host "DisplayPasswordOnScreeen (Yes/No)"
-  If ($DisplayPasswordOnScreen -eq "yes") {
-    $DisplayPasswordOnScreen = $true
-  }
-  Else {
-    $DisplayPasswordOnScreen = $false
-  }
-$DisplayPasswordOnScreen
-}
 Show-SDPasswdResetMenu
