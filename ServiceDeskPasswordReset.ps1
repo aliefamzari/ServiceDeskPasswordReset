@@ -29,9 +29,7 @@ Catch {
 Function Get-AdmCred {
 
   $AdmUsername = read-host "ADM Username (admxxxxx)"
-  # $AdmUsername = "$AdmUsername
   $AdmPassword =  read-host  "ADM password" -AsSecureString
-  # $secureString = $AdmPassword | ConvertTo-SecureString -AsPlainText -Force
   $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword
   $AdmCredential
 } #end Get-AdmCred 
@@ -255,10 +253,16 @@ Function Reset-AdPwd {
                 $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
                 $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 try {
-                    $PasswordisReset = $true
-                    # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    # Set-ADUser -Identity $Username -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
                     Write-Host "[$Username]Reseting password"
+                    $PasswordisReset = $true
+                    Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    if ($ChangePasswordAtLogon -eq "$true") {
+                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                    }
+                    else {
+                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                    }
+                    Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
                 }
                 catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                     $PasswordisReset = $false
@@ -266,21 +270,21 @@ Function Reset-AdPwd {
                     Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
                 }
                 Catch [System.Management.Automation.ParameterBindingException]{
-                  $PasswordisReset = $false
-                  Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
-                  Write-log -Level Error -Data "Invalid Parameter -Active Directory"
+                    $PasswordisReset = $false
+                    Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
+                    Write-log -Level Error -Data "Invalid Parameter -Active Directory"
                 }
                 catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
-                  $PasswordisReset = $false
-                  Write-Host "AD service error" -ForegroundColor Red
-                  Write-log -Level Error "AD service error"
+                    $PasswordisReset = $false
+                    Write-Host "AD service error" -ForegroundColor Red
+                    Write-log -Level Error "AD service error"
                 }
                 catch [System.Management.Automation.PSArgumentException]{
-                  $PasswordisReset = $false
-                  Write-Host "Username exception" -ForegroundColor Red
+                    $PasswordisReset = $false
+                    Write-Host "Username exception" -ForegroundColor Red
                 }
                 catch {
-                  $PasswordisReset = $false
+                    $PasswordisReset = $false
                 }
               }
               else {
@@ -323,7 +327,8 @@ Function Reset-AdPwd {
   
             function SendMgr {
               if ($PasswordisReset -eq $true) {
-                $To =  almaz@orsted.com #$ManagerEmail
+                $To =  "almaz@orsted.com"
+                # $To = $ManagerEmail
                 Write-Host "[$Username]Sending email password to Manager.."
                 Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
                 if ($SendSDMail -eq $false) {
@@ -436,6 +441,10 @@ function Reset-PwdMulti {
   Write-Host "Input file sanitized"
   Write-Host "Total of $usercount user(s) to reset"
 
+  Write-Host 
+
+  
+
   foreach ($item in $users){
     if ($PasswordLength -eq 0){
       Write-host "Attempting to reset for user $item"
@@ -456,6 +465,7 @@ Function Show-SDPasswdResetMenu {
   $ItemNumberColor = "Cyan"
   $ItemTextColor = "White"
   $ItemWarningColor = "Yellow"
+  Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
   $AdmCredential = Get-AdmCred
 
 
