@@ -443,39 +443,38 @@ function Reset-PwdMulti {
     write-host "Returning to main menu ..."
     start-sleep 3
     break
-}
-else{
-  Write-Host "Input file loaded"
-  Start-Sleep 2
-  Write-Host "Sanitizing input file"
-  Start-Sleep 2
-  $trimpath = "$env:USERPROFILE\trim.txt"
-  $File = Get-Content $FileBrowser.FileName 
-  $file = $file |Out-String
-  $file.Trim() |Set-Content $trimpath
-  $users = (Get-Content -path $trimpath)
-  $usercount = $users.Count
-  $DisplayPasswordOnScreen = $false
-  Start-Sleep 2
-  Write-Host "Input file sanitized"
-  Write-Host "Total of $usercount user(s) to reset"
+  }
+  else{
+      Write-Host "Input file loaded"
+      Start-Sleep 2
+      Write-Host "Sanitizing input file"
+      Start-Sleep 2
+      $trimpath = "$env:USERPROFILE\trim.txt"
+      $File = Get-Content $FileBrowser.FileName 
+      $file = $file |Out-String
+      $file.Trim() |Set-Content $trimpath
+      $users = (Get-Content -path $trimpath)
+      $usercount = $users.Count
+      $DisplayPasswordOnScreen = $false
+      Start-Sleep 2
+      Write-Host "Input file sanitized"
+      Write-Host "Total of $usercount user(s) to reset"
 
-  Write-Host 
+      Write-Host 
 
   
 
-  foreach ($item in $users){
-    if ($PasswordLength -eq 0){
-      Write-host "Attempting to reset for user $item"
-      Reset-AdPwd -Username $item
-    }
-    else {
-      Write-host "Attempting to reset for user $item"
-      Reset-AdPwd -Username $item -PasswordLength $PasswordLength
+    foreach ($item in $users){
+      if ($PasswordLength -eq 0){
+        Write-host "Attempting to reset for user $item"
+        Reset-AdPwd -Username $item
+      }
+      else {
+        Write-host "Attempting to reset for user $item"
+        Reset-AdPwd -Username $item -PasswordLength $PasswordLength
+      }
     }
   }
-}
-
 } #end Reset-PwdMulti
 
 Function Show-SDPasswdResetMenu {
