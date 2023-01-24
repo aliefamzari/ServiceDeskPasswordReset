@@ -31,7 +31,6 @@ $SMSAddress = $Config[17]
 $DisplayPasswordOnScreen = $Config[19]
 #>
 
-# $AdmCredential = Get-AdmCred
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
