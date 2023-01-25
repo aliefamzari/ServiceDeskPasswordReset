@@ -31,9 +31,9 @@ Catch {
 
 Function Get-AdmCred {
 
-  $AdmUsername = read-host "Enter your ADM Username (admxxxxx)"
-  $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString
-  $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword
+  $AdmUsername = read-host "Enter your ADM Username (admxxxxx)" -
+  $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString -
+  $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword -ErrorAction SilentlyContinue
   $AdmCredential
 } #end Get-AdmCred 
 
@@ -476,23 +476,23 @@ function Reset-PwdMulti {
 } #end Reset-PwdMulti
 
 Function Show-SDPasswdResetMenu {
-  write-host 'Initializing..'
-  # $pswho = $env:USERNAME
+  clear-host
+  $pswho = $env:USERNAME
   $TitleColor = "White"
   $MenuTitleColor = "Cyan"
   $ItemNumberColor = "Cyan"
   $ItemTextColor = "White"
   $ItemWarningColor = "Yellow"
-  Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
+  Write-Host "Enter your admin account for Active Directory. This will be use as the credentials to perform password reset." -ForegroundColor Cyan
   $AdmCredential = Get-AdmCred
  
   
 
   While ($Menu -ne '') {
       Clear-Host
-      Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Menu`n"
+      Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Tool`n"
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
-      Write-Host -ForegroundColor $MenuTitleColor "`nMain Menu" -NoNewline
+      Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager via email."
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
@@ -500,14 +500,29 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
       Write-Host
+      Write-Host "Current Settings config.json"
+      write-host "----------------------------"
       if ($DisplayPasswordOnScreen -eq '$true') {
-        Write-Host "DisplayPasswordOnScreen = "-NoNewline
+        Write-Host "DisplayPasswordOnScreen : "-NoNewline
         Write-Host "ON" -ForegroundColor DarkGreen
       }
       else {
-        Write-Host "DisplayPasswordOnScreen = "-NoNewline
+        Write-Host "DisplayPasswordOnScreen : "-NoNewline
         Write-Host "OFF" -ForegroundColor Red
       }
+      if ($ChangePasswordAtLogon -eq '$true') {
+        Write-Host "ChangePasswordAtLogon : "-NoNewline
+        Write-Host "ON" -ForegroundColor DarkGreen
+      }
+      else {
+        Write-Host "ChangePasswordAtLogon : "-NoNewline
+        Write-Host "OFF" -ForegroundColor Red
+      }
+      # Write-Host "Dommain Name : $DomainName"
+      # Write-Host "Organization Name : $OrgName"
+      # Write-Host "SMTP Server : $SMTPServer"
+      # Write-host "Mail Sender : $MailSender"
+      # Write-Host "Log Path : $LogPath"
       
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
@@ -578,3 +593,4 @@ Function Show-SDPasswdResetMenu {
 } #end Show-SDPasswdResetMenu
 
 Show-SDPasswdResetMenu
+

@@ -5,7 +5,7 @@
     "LogPath": "c:\\app\\write-log.log",
     "PasswordLength": "12",
     "MailSender": "Ørsted SD AAC <SD_Assistance@orsted.com>",
-    "ChangePasswordAtLogon": "$false",
+    "ChangePasswordAtLogon": "$true",
     "OrgName": "Ørsted",
     "SMSaddress": "@sms.orsted.com",
     "DisplayPasswordOnScreen": "$true"
