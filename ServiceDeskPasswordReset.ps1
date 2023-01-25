@@ -261,7 +261,7 @@ Function Reset-AdPwd {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
                     # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    # if ($ChangePasswordAtLogon -eq "$true") {
+                    # if ($ChangePasswordAtLogon -eq '$true') {
                     #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
                     # }
                     # else {
