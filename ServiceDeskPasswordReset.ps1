@@ -5,8 +5,8 @@
  Contain forked function 'Send-SDMail,Get-PDC'
  Encoding = ANSI (Windows 1252)
 #>
-#GlobalVariable Read from config.json#
 
+#Region GlobalVariable Read from config.json
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 $Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
 $LogPath = $Config.LogPath
@@ -17,6 +17,8 @@ $ChangePasswordAtLogon = $Config.ChangePasswordAtLogon
 $OrgName = $Config.OrgName
 $SMSAddress = $Config.SMSAddress
 $DisplayPasswordOnScreen = $Config.DisplayPasswordOnScreen
+#Endregion GlobalVariable
+
 <# 
 $Config = (Get-Content -Path $ScriptPath\config.txt)
 $PsWho = $env:USERNAME
@@ -31,6 +33,7 @@ $SMSAddress = $Config[17]
 $DisplayPasswordOnScreen = $Config[19]
 #>
 
+#Region Import Active-Directory Module
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
 }
@@ -38,6 +41,8 @@ Catch {
   Write-Host "Error Importing module ActiveDirectory"
   Break
 }
+#Endregion Import Active-Directory Module
+
 Function Get-AdmCred {
 
   $AdmUsername = read-host "Enter your ADM Username (admxxxxx)"
@@ -93,7 +98,8 @@ Function Get-PDC {
       }
       catch {
         $Error[0]
-        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red |Write-Log -Level Error
+        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red 
+        Write-log -level Error -Data "PDC could not be found for $DomainName"
         Break
         $PDC = $Null
       }
@@ -105,7 +111,8 @@ Function Get-PDC {
       }
       catch {
         $Error[0]
-        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red |Write-Log -Level Error
+        Write-Host "PDC could not be found for $DomainName" -ForegroundColor Red 
+        Write-log -level Error -Data "PDC could not be found for $DomainName"
         Break
         $PDC = $Null
       }
@@ -459,19 +466,24 @@ function Reset-PwdMulti {
       Start-Sleep 2
       Write-Host "Input file sanitized"
       Write-Host "Total of $usercount user(s) to reset"
+      Write-Host "Overriding DisplayPasswordONscreen to $FALSE" -ForegroundColor Yellow
 
-      Write-Host 
-
-  
 
     foreach ($item in $users){
-      if ($PasswordLength -eq 0){
-        Write-host "Attempting to reset for user $item"
-        Reset-AdPwd -Username $item
-      }
-      else {
-        Write-host "Attempting to reset for user $item"
-        Reset-AdPwd -Username $item -PasswordLength $PasswordLength
+      try {     
+
+            if ($PasswordLength -eq 0){
+              Write-host "Attempting to reset for user $item"
+              Reset-AdPwd -Username $item
+            }
+            else {
+              Write-host "Attempting to reset for user $item"
+              Reset-AdPwd -Username $item -PasswordLength $PasswordLength
+            }
+          }
+      catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
+        Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
+        Write-log -Level Error -Data "Authentication Error. Check your credentials" 
       }
     }
   }
@@ -487,6 +499,8 @@ Function Show-SDPasswdResetMenu {
   $ItemWarningColor = "Yellow"
   Write-Host "Enter your admin account for Active Directory" -ForegroundColor Cyan
   $AdmCredential = Get-AdmCred
+ 
+  
 
   While ($Menu -ne '') {
       Clear-Host
@@ -499,7 +513,15 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to user via Mobile SMS."
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
-
+      Write-Host
+      if ($DisplayPasswordOnScreen -eq '$true') {
+        Write-Host "DisplayPasswordOnScreen = "-NoNewline
+        Write-Host "ON" -ForegroundColor DarkGreen
+      }
+      else {
+        Write-Host "DisplayPasswordOnScreen = "-NoNewline
+        Write-Host "OFF" -ForegroundColor Red
+      }
       
       $menu = Read-Host "`nSelection (leave blank to quit)"
       Switch ($Menu) {
