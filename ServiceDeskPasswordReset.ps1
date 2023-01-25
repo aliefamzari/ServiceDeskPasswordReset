@@ -19,20 +19,6 @@ $SMSAddress = $Config.SMSAddress
 $DisplayPasswordOnScreen = $Config.DisplayPasswordOnScreen
 #Endregion GlobalVariable
 
-<# 
-$Config = (Get-Content -Path $ScriptPath\config.txt)
-$PsWho = $env:USERNAME
-$PsWho = $AdmCredential.username
-$LogPath = $Config[7]
-$MailSender = $Config[11]
-$SMTPServer = $Config[1]
-$DomainName = $Config[3]
-$ChangePasswordAtLogon = $Config[13]
-$OrgName = $Config[15]
-$SMSAddress = $Config[17]
-$DisplayPasswordOnScreen = $Config[19]
-#>
-
 #Region Import Active-Directory Module
 Try {
   Import-Module ActiveDirectory -ErrorAction Stop
