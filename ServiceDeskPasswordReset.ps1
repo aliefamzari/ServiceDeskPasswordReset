@@ -185,23 +185,24 @@ Function Send-SDMail {
     [String]
     $Passwd
   )
-  $MailSubject = Get-Content $ScriptPath\MailSubject.txt -Raw
-  $MailBody = Get-Content $ScriptPath\MailBody.txt -Raw
-  $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.txt -Raw
+  $MailSubject = Get-Content $ScriptPath\MailSubject.html -Raw
+  $MailBody = Get-Content $ScriptPath\MailBody.html -Raw
+  $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.html -Raw
+  $MailBodyUser = Get-Content $ScriptPath\MailBodyUser.html -Raw
   $From = $MailSender
   # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
-    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
-    $Body = $MailBody -replace('##ManagerFullName##',$ManagerFullName) -replace('##FullName##',$FullName) -replace('Passwd',$Passwd)
+    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Body = $MailBody -replace('ManagerFullName',$ManagerFullName) -replace('FullName',$FullName) -replace('Passwd',$Passwd)
    }
    User {
-    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
+    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
    }
    SMS {
-    $Subject = $MailSubject -replace('##FullName##',$FullName) -replace('##DomainName##',$DomainName)
-    $Body = $MailBodySMS -replace('##FullName##',$FullName) -replace('Passwd',$Passwd)
+    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Body = $MailBodySMS -replace('FullName',$FullName) -replace('Passwd',$Passwd)
    }  
   } 
   # $SMTPServer = $SMTPServer
@@ -415,7 +416,7 @@ Function Reset-AdPwd {
         } #End AccountExist = $false
       } #End Switch AccountExist
       $RunTime = New-TimeSpan -Start $StartTime -End (get-date)  #End Stop Watch
-      "Execution time was {0} hours, {1} minutes, {2} seconds and {3} milliseconds." -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
+      "Execution time was {0}:{1}:{2}.{3}" -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
 } #end Reset-AdPwd
 
 function Reset-PwdMulti {
