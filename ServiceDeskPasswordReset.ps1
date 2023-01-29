@@ -31,7 +31,7 @@ Catch {
 
 Function Get-AdmCred {
 
-  $AdmUsername = read-host "Enter your ADM Username (admxxxxx)" -
+  $AdmUsername = read-host "Enter your ADM username (admxxxxx)" -
   $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString -
   $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword -ErrorAction SilentlyContinue
   $AdmCredential
@@ -254,6 +254,7 @@ Function Reset-AdPwd {
       }
       Switch ($AccountExists) {
         True {
+              #Region Trying to reset
               if ($ADUser -and $Enabled -and $Manager -and $PasswordisReset){
                 $PasswordisReset = $true
                 $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
@@ -297,29 +298,42 @@ Function Reset-AdPwd {
                     $PasswordisReset = $false
                 }
               }
+              #EndRegion try to reset 
+
+              #Region If failed to reset
               else {
                 $PasswordisReset = $false
-                If (!$Enabled) {
-                  try {
-                    $Manager = Get-ADuser $manager -server $DC | Select-Object UserPrincipalName,givenname,surname -ErrorAction Stop
-                    $ManagerEmail = $Manager.UserPrincipalName
-                    $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
-                    write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
-                  }
-                  catch {
-                    Write-host "[$Username]Manager is Empty"
-                  }
-                  finally {
-                    write-host "[$Username]Account is Disabled" -ForegroundColor Yellow
-                    write-log -level Error -Data "[$Username]Account is Disabled"
-                  }
+                try {
+                  $Manager = Get-ADuser $manager -server $DC | Select-Object UserPrincipalName,givenname,surname -ErrorAction Stop
+                  $ManagerEmail = $Manager.UserPrincipalName
+                  $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
+                  $ManagerExist = $true
                 }
-              }
+                catch {
+                  $ManagerExist = $false
+                }
+                if (!$Enabled -and !$ManagerExist) {
+                  Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                  Write-host "[$Username]Manager is Empty"
+                  write-log -level Error -Data "[$Username]Account is Disabled"
+                }
+                If (!$Enabled -and $ManagerExist) {
+
+                    Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                    write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
+                    write-log -level Error -Data "[$Username]Account is Disabled"
+                }
+                if ($Enabled -and!$ManagerExist) {
+                  Write-Host "[$Username]Account is Enabled" -ForegroundColor Yellow
+                    Write-host "[$Username]Manager is Empty"
+                }
+              } #End Region if failed to reset
+
               if ($mobilephone -and $PasswordisReset){
                   $mobilephoneisExist = $true
               }
               elseif (!$mobilephone) {
-                write-host "[$Username]mobilephone is empty"
+                write-host "[$Username]Mobilephone is empty"
                 $mobilephoneisExist = $false
               }
               if ($PasswordisReset){
