@@ -198,7 +198,7 @@ Function Send-SDMail {
    }
    User {
     $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
-    $Body = "Dear $FullName,<BR><BR>This is your temporary password: $Passwd<BR><BR>You cannot reply to this email.<BR><BR>Kind regards"
+    $Body = $MailBodyUser -replace('FullName',$FullName)
    }
    SMS {
     $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
@@ -222,8 +222,8 @@ Function Reset-AdPwd {
       $UserName,
       [String]
       [Parameter()]
-      [ValidateSet("Manager","SMS","ManagerSMS","User")]
-      $MailTo="Manager",
+      [ValidateSet("Manager","SMS","User","ManagerSMSUser")]
+      $MailTo,
       [Parameter(Mandatory=$false)]
       [Int]$PasswordLength = 12
       )
@@ -237,9 +237,10 @@ Function Reset-AdPwd {
       try {
           Write-Output "[$Username]Trying to reset password for $Username" |Write-Log -level Info
           Write-host "[$Username]Trying to reset password for $Username"
-          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone -ErrorAction Stop
+          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone ,mail -ErrorAction Stop
           $Enabled = $ADUser.Enabled
           $Manager = $ADUser.Manager
+          $ADUserEmail = $ADUser.mail
           $mobilephone = $ADUser.mobilephone
           $PasswordisReset = $true
           $AccountExists = $true
@@ -325,6 +326,14 @@ Function Reset-AdPwd {
                     Write-host "[$Username]Password is: "-NoNewline 
                     Write-host "$Password" -ForegroundColor Cyan
                   }
+                  if ($MailTo -eq "" -and $mobilephoneisExist) {
+                    Write-Host "Callback $mobilephone"
+                  }
+                  elseif ($mailto -eq "" -and !$mobilephoneisExist) {
+                    Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
+                    Write-Log -level Warning -Data "[$Username]mobilephone is empty. Sending to Manager instead"
+                    $MailTo = 'manager'
+                  }
                 }
               else {
                 write-host "[$Username]Error:Password not reset" -ForegroundColor Red
@@ -358,6 +367,18 @@ Function Reset-AdPwd {
               write-host "[$Username]Mail sent to $To"
               Write-Log -Level Info -Data "[$Username]Mail sent to SMS $to"
             } #End SendSMS
+
+            function SendUsr {
+              if ($PasswordisReset -eq $true) {
+                $To = $ADUserEmail
+                $FullName = $ADUser.GivenName + " " + $ADUser.surname
+                Write-Host "[$Username]Sending mail to $ADUserEmail.."
+                Send-SDMail -to $To -FullName $FullName -SendPwdTo User
+                Write-Host  "[$Username]Mail sent to $To"
+                Write-Log -Level Info -Data "[$Username]Mail sent to $to"
+              }
+            } #End SendUsr
+            
   
           #Switch for Parameter $MailTo
               Switch -regex ($MailTo) {
@@ -376,7 +397,7 @@ Function Reset-AdPwd {
                 SMS { if ($PasswordisReset) {
                         try {
                           if(!$mobilephoneisExist){
-                            Write-Host "[$Username]mobilephone is empty. Sending to Manager instead"
+                            Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
                             Write-Log -level Warning -Data "[$Username]mobilephone is empty. Sending to Manager instead"
                             SendMgr
                           }
@@ -395,11 +416,12 @@ Function Reset-AdPwd {
                 User { if ($PasswordisReset){
                         try {
                             $MailSentToUser = $true
-                            $FullName = $ADUser.GivenName + " " + $ADUser.surname
-                            $To = $ADUser.UserPrincipalName
+                            # $FullName = $ADUser.GivenName + " " + $ADUser.surname
+                            # $To = $ADUser.UserPrincipalName
                             # Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo User -Passwd $Password
-                            Write-host "[$Username]Mail sent to User"
-                            Write-Log -Level Info -data "[$Username]Mail sent to User"
+                            SendUsr
+                            # Write-host "[$Username]Mail sent to User"
+                            # Write-Log -Level Info -data "[$Username]Mail sent to User"
                         }
                         catch {
                             $MailSentToUser = $false
@@ -461,11 +483,11 @@ function Reset-PwdMulti {
 
             if ($PasswordLength -eq 0){
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item
+              Reset-AdPwd -Username $item -MailTo Manager
             }
             else {
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item -PasswordLength $PasswordLength
+              Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Manager
             }
           }
       catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
@@ -495,9 +517,9 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
       Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager via email."
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Callback]"
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to user via Mobile SMS."
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to SMS(if available) and Manager"
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
       Write-Host
@@ -545,7 +567,6 @@ Function Show-SDPasswdResetMenu {
                 Write-Host "Password Length is $PasswordLength"
                 Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
               }
-              # Reset-AdPwd -UserName $Username -PasswordLength $Passwordlength
               Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)
@@ -562,11 +583,11 @@ Function Show-SDPasswdResetMenu {
             [int]$Passwordlength = Read-Host
             if ($Passwordlength -lt 12) {
               Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-              Reset-AdPwd -Username $Username -MailTo SMS
+              Reset-AdPwd -Username $Username -MailTo ManagerSMSUser
             }
             else {
               Write-Host "Password Length is $PasswordLength"
-              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
+              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo ManagerSMSUser
             }
             Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
             Write-Host "`nPress any key to return to the previous menu"
@@ -587,7 +608,6 @@ Function Show-SDPasswdResetMenu {
               Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
               Write-Host "`nPress any key to return to the previous menu"
               [void][System.Console]::ReadKey($true)           
-
           }
       }
   }
