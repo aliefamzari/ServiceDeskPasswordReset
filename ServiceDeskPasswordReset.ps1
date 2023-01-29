@@ -185,7 +185,10 @@ Function Send-SDMail {
     [String]
     $Passwd
   )
-  $MailSubject = Get-Content $ScriptPath\MailSubject.html -Raw
+  $MailSubject = Get-Content $ScriptPath\MailSubject.txt
+  $MailSubjectManager = $MailSubject[1]
+  $MailSubjectSmS = $MailSubject[3]
+  $MailSubjectUser = $MailSubject[5]
   $MailBody = Get-Content $ScriptPath\MailBody.html -Raw
   $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.html -Raw
   $MailBodyUser = Get-Content $ScriptPath\MailBodyUser.html -Raw
@@ -193,15 +196,15 @@ Function Send-SDMail {
   # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
-    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Subject = $MailSubjectManager -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = $MailBody -replace('ManagerFullName',$ManagerFullName) -replace('FullName',$FullName) -replace('Passwd',$Passwd)
    }
    User {
-    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Subject = $MailSubjectUser -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = $MailBodyUser -replace('FullName',$FullName)
    }
    SMS {
-    $Subject = $MailSubject -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Subject = $MailSubjectSmS -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = $MailBodySMS -replace('FullName',$FullName) -replace('Passwd',$Passwd)
    }  
   } 

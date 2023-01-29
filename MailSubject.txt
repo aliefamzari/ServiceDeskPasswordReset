@@ -3,4 +3,4 @@ Temporary DomainName password for FullName
 #SMS#
 Temporary DomainName password for FullName
 #User#
-Your Password for DomainName  has been reset
+Your password for DomainName  has been reset
