@@ -295,8 +295,8 @@ Function Reset-AdPwd {
         True {
               #Region Check-Manager
               try {
-                $Manager = Get-ADuser $manager -server $DC | Select-Object UserPrincipalName,givenname,surname -ErrorAction Stop
-                $ManagerEmail = $Manager.UserPrincipalName
+                $Manager = Get-ADuser $manager -server $DC -Properties mail,givenname,surname -ErrorAction Stop
+                $ManagerEmail = $Manager.mail
                 $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
                 $ManagerExist = $true
                 }
@@ -338,7 +338,6 @@ Function Reset-AdPwd {
               $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist)  
 
               #EndRegion User Scenario matrix
-
 
               switch ($PasswordisReset) {
 
