@@ -236,44 +236,20 @@ Function Reset-AdPwd {
       $DC = Get-PDC -DomainName $DomainName
       Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
       Write-host "Querying $Username in Active-Directory"
-
-      try {
-          Write-Output "[$Username]Trying to reset password for $Username" |Write-Log -level Info
-          Write-host "[$Username]Trying to reset password for $Username"
-          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone,mail -ErrorAction Stop
-          $Enabled = $ADUser.Enabled
-          $Manager = $ADUser.Manager
-          $ADUserEmail = $ADUser.mail
-          $mobilephone = $ADUser.mobilephone
-          $PasswordisReset = $true
-          $AccountExists = $true
-      }
-      catch {
-          $PasswordisReset = $false
-          $AccountExists = $false
-      }
-      Switch ($AccountExists) {
-        True {
-              #Region Trying to reset
-              if ($ADUser -and $Enabled -and $Manager -and $PasswordisReset){
+      Function Rst {
+        $script:Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+        $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
+            try {
+                Write-Host "[$Username]Reseting password"
                 $PasswordisReset = $true
-                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-                $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
-                $Manager= Get-ADuser $manager -server $DC -Properties mail,givenname,surname -ErrorAction Stop
-                $ManagerEmail = $Manager.mail
-                $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
-                $FullName = $ADUser.GivenName + " " + $ADUser.surname
-                try {
-                    Write-Host "[$Username]Reseting password"
-                    $PasswordisReset = $true
-                    # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    # if ($ChangePasswordAtLogon -eq '$true') {
-                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
-                    # }
-                    # else {
-                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
-                    # }
-                    # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
+                # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                # if ($ChangePasswordAtLogon -eq '$true') {
+                #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                # }
+                # else {
+                #  Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                # }
+                # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
                 }
                 catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                     $PasswordisReset = $false
@@ -297,68 +273,162 @@ Function Reset-AdPwd {
                 catch {
                     $PasswordisReset = $false
                 }
+                
+      }
+      try {
+          Write-Output "[$Username]Trying to reset password for $Username" |Write-Log -level Info
+          Write-host "[$Username]Trying to reset password for $Username"
+          $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone,mail -ErrorAction Stop
+          $FullName = $ADUser.GivenName + " " + $ADUser.surname
+          $Enabled = $ADUser.Enabled
+          $Manager = $ADUser.Manager
+          $ADUserEmail = $ADUser.mail
+          $mobilephone = $ADUser.mobilephone
+          $PasswordisReset = $true
+          $AccountExists = $true
+      }
+      catch {
+          $PasswordisReset = $false
+          $AccountExists = $false
+      }
+      Switch ($AccountExists) {
+        True {
+              #Region Check-Manager
+              try {
+                $Manager = Get-ADuser $manager -server $DC | Select-Object UserPrincipalName,givenname,surname -ErrorAction Stop
+                $ManagerEmail = $Manager.UserPrincipalName
+                $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
+                $ManagerExist = $true
+                }
+              catch {
+                $ManagerExist = $false
               }
-              #EndRegion try to reset 
+              #EndRegion Check-Manager
 
-              #Region If failed to reset
+              #Region CheckPhone
+              if ($MobilePhone) {
+                $MobilePhoneisExist = $true
+              }
               else {
-                $PasswordisReset = $false
-                try {
-                  $Manager = Get-ADuser $manager -server $DC -Properties mail,givenname,surname -ErrorAction Stop
-                  $ManagerEmail = $Manager.Mail
-                  $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
-                  $ManagerExist = $true
-                }
-                catch {
-                  $ManagerExist = $false
-                }
-                if (!$Enabled -and !$ManagerExist) {
-                  Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
-                  Write-host "[$Username]Manager is Empty"
-                  write-log -level Error -Data "[$Username]Account is Disabled"
-                }
-                If (!$Enabled -and $ManagerExist) {
+                $MobilePhoneisExist = $false
+              }
+              #EndRegion CheckPhone
+              #Region User Scenario matrix\
+              <#
+                +------------+------------+---------------+-------------------+-----------------+
+                | User Type  | IsEnabled  | ManagerExist  | MobilePhoneExist  | Password Reset  |
+                +------------+------------+---------------+-------------------+-----------------+
+                | 1          | y          | y             | y                 | y               |
+                | 2          | y          | y             | n                 | y               |
+                | 3          | y          | n             | y                 | y               |
+                | 4          | y          | n             | n                 | n               |
+                | 5          | n          | n             | n                 | n               |
+                | 6          | n          | y             | n                 | n               |
+                | 7          | n          | y             | y                 | n               |
+                | 8          | n          | y             | n                 | n               |
+                +------------+------------+---------------+-------------------+-----------------+
+              #>
+              $type1 = ($Enabled -and $ManagerExist -and $MobilePhoneisExist)
+              $type2 = ($Enabled -and $ManagerExist -and !$MobilePhoneisExist)
+              $type3 = ($Enabled -and !$ManagerExist -and $MobilePhoneisExist)
+              $type4 = ($Enabled -and !$ManagerExist -and !$MobilePhoneisExist)
+              $type5 = (!$Enabled -and !$ManagerExist -and !$MobilePhoneisExist)
+              $type6 = (!$Enabled -and $ManagerExist -and !$MobilePhoneisExist)
+              $type7 = (!$Enabled -and !$ManagerExist -and $MobilePhoneisExist)
+              $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist)  
 
-                    Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
-                    write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
-                    write-log -level Error -Data "[$Username]Account is Disabled"
+              #EndRegion User Scenario matrix
+
+
+              switch ($PasswordisReset) {
+
+                True {
+                    switch ($True){
+                        $type1 {
+                            try {
+                                Rst
+                                $PasswordisReset = $true 
+                            }
+                            catch {
+                                $PasswordisReset = $false 
+                            }
+                        }
+                        $type2 {
+                            try {
+                                Rst
+                                $PasswordisReset = $true
+                                 
+                            }
+                            catch {
+                                $PasswordisReset = $false 
+                            }
+                        }
+                        $type3 {
+                            try {
+                                Rst
+                                $PasswordisReset = $true 
+                            }
+                            catch {
+                                $PasswordisReset = $false 
+                            }
+                        }
+                        $type4 {
+                            Write-Host "[$Username]Manager is Empty"
+                            Write-Host "[$Username]Mobilephone is empty"
+                            $PasswordisReset = $false
+                        }
+                        $type5 {
+                            Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                            Write-host "[$Username]Manager is Empty"
+                            Write-Host "[$Username]Mobilephone is empty"
+                            $PasswordisReset = $false
+                        }
+                        $type6 {
+                            Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                            write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
+                            Write-Host "[$Username]Mobilephone is empty"
+                            $PasswordisReset = $false
+                        }
+                        $type7 {
+                            Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                            Write-Host "[$Username]Manager is Empty"
+                            Write-Host "[$Username]Mobilephone is $Mobilephone"
+                            $PasswordisReset = $false
+                        }
+                        $type8 {
+                            Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                            write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
+                            Write-Host "[$Username]Mobilephone is $Mobilephone"
+                            $PasswordisReset = $false
+                        }
+                    
+                    }
                 }
-                if ($Enabled -and!$ManagerExist) {
-                  Write-Host "[$Username]Account is Enabled" -ForegroundColor Yellow
-                    Write-host "[$Username]Manager is Empty"
+                false {
+                    write-host 'password not reset'
                 }
-              } 
-              #EndRegion if failed to reset
-              #Region if password is reset
-              if ($mobilephone -and $PasswordisReset){
-                  $mobilephoneisExist = $true
-              }
-              elseif (!$mobilephone) {
-                write-host "[$Username]Mobilephone is empty"
-                $mobilephoneisExist = $false
-              }
-              if ($PasswordisReset){
-                  Write-Host "[$Username]Password is reset" -ForegroundColor Cyan
-                  Write-log -level info -data "[$Username]Password is reset"
-                  if ($DisplayPasswordOnScreen -eq '$true') {
+            }
+
+            if ($PasswordisReset) {
+                Write-Host "[$Username]Password is reset" -ForegroundColor Cyan
+                Write-log -level info -data "[$Username]Password is reset"
+                if ($DisplayPasswordOnScreen -eq '$true') {
                     Write-host "[$Username]Password is: "-NoNewline 
                     Write-host "$Password" -ForegroundColor Cyan
                   }
-                  if ($MailTo -eq "" -and $mobilephoneisExist) {
+                if ($MailTo -eq "" -and $mobilephoneisExist) {
                     Write-Host "Callback $mobilephone"
-                  }
-                  elseif ($mailto -eq "" -and !$mobilephoneisExist) {
-                    Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
-                    Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
-                    $MailTo = 'manager'
-                  }
-                }
-                #EndRegion if password is reset
-              else {
+                    }
+                    elseif ($mailto -ne "Manager" -and !$mobilephoneisExist) {
+                        Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
+                        Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
+                        $MailTo = 'manager'
+                    }
+            }
+            else {
                 write-host "[$Username]Error:Password not reset" -ForegroundColor Red
                 Write-log -level Error -data "[$Username]Password not reset"
               } 
-  
             function SendMgr {
               if ($PasswordisReset -eq $true) {
                 $To =  "almaz@orsted.com"
@@ -389,7 +459,8 @@ Function Reset-AdPwd {
 
             function SendUsr {
               if ($PasswordisReset -eq $true) {
-                $To = $ADUserEmail
+                # $To = $ADUserEmail
+                $To = 'almaz@orsted.com'
                 $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 Write-Host "[$Username]Sending mail to $ADUserEmail.."
                 Send-SDMail -to $To -FullName $FullName -SendPwdTo User
@@ -460,7 +531,7 @@ Function Reset-AdPwd {
       "Execution time was {0}:{1}:{2}.{3}" -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
 } #end Reset-AdPwd
 
-function Reset-PwdMulti {
+Function Reset-PwdMulti {
   [CmdletBinding()]
   param (
       [Parameter(Mandatory=$false)]
