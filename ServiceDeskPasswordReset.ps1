@@ -379,8 +379,8 @@ Function Reset-AdPwd {
          }
             function SendSMS {
               $To = $mobilephone.Replace(" ","")
-              $To = $To + $SMSAddress
-              # $To = '+60124364147'
+              # $To = $To + $SMSAddress
+              $To = '+60124364147'
               Write-Host "[$Username]Sending SMS to $mobilephone.."
               Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
               write-host "[$Username]Mail sent to $To"
