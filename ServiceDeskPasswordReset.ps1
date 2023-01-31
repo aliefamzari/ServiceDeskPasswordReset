@@ -266,13 +266,13 @@ Function Reset-AdPwd {
                 try {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
-                    Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    if ($ChangePasswordAtLogon -eq '$true') {
-                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    else {
-                      Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
-                    }
+                    # Set-ADAccountPassword -Identity $UserName -Server $DC.HostName -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    # if ($ChangePasswordAtLogon -eq '$true') {
+                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                    # }
+                    # else {
+                    #   Set-ADUser -Identity $Username -Server $dc.HostName -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                    # }
                     # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
                 }
                 catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
@@ -347,10 +347,10 @@ Function Reset-AdPwd {
                   if ($MailTo -eq "" -and $mobilephoneisExist) {
                     Write-Host "Callback $mobilephone"
                   }
-                  elseif ($mailto -eq "" -and !$mobilephoneisExist) {
+                  elseif ($mailto -ne 'ManagerSMSUser' -and !$mobilephoneisExist) {
                     Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
                     Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
-                    $MailTo = 'manager'
+                    $mailto = 'manager'
                   }
                 }
                 #EndRegion if password is reset
@@ -389,7 +389,8 @@ Function Reset-AdPwd {
 
             function SendUsr {
               if ($PasswordisReset -eq $true) {
-                $To = $ADUserEmail
+                # $To = $ADUserEmail
+                $To = 'almaz@orsted.com'
                 $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 Write-Host "[$Username]Sending mail to $ADUserEmail.."
                 Send-SDMail -to $To -FullName $FullName -SendPwdTo User
@@ -401,7 +402,7 @@ Function Reset-AdPwd {
   
           #Switch for Parameter $MailTo
               Switch -regex ($MailTo) {
-                Manager { if ($PasswordisReset){
+                Manager { if ($PasswordisReset -and !$mobilephoneisExist){
                         try {
                             $MailSentToManager = $true
                             SendMgr
@@ -413,7 +414,7 @@ Function Reset-AdPwd {
                         }
                   }
                 }
-                SMS { if ($PasswordisReset) {
+                SMS { if ($PasswordisReset -and !$MailSentToManager) {
                         try {
                           if(!$mobilephoneisExist){
                             Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
