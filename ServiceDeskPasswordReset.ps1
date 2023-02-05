@@ -383,13 +383,13 @@ Function Reset-AdPwd {
                 try {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
-                    Set-ADAccountPassword -Identity $UserName -Server $DC -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    if ($ChangePasswordAtLogon -eq '$true') {
-                    Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    else {
-                    Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
-                    }
+                    # Set-ADAccountPassword -Identity $UserName -Server $DC -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    # if ($ChangePasswordAtLogon -eq '$true') {
+                    # Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                    # }
+                    # else {
+                    # Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                    # }
                     # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
                     }
                     catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
@@ -456,8 +456,8 @@ Function Reset-AdPwd {
           #Region Send Function
           function SendMgr {
             if ($PasswordisReset -eq $true) {
-            # $To =  "almaz@orsted.com"
-            $To = $ManagerEmail
+            $To =  "almaz@orsted.com"
+            # $To = $ManagerEmail
             Write-Host "[$Username]Sending email password to Manager.."
             Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
             if ($SendSDMail -eq $false) {
@@ -474,8 +474,8 @@ Function Reset-AdPwd {
           } #End SendMgr
           function SendSMS {
                   $To = $mobilephone.Replace(" ","")
-                  $To = $To + $SMSAddress
-                  # $To = '+60124364147@sms.orsted.com'
+                  # $To = $To + $SMSAddress
+                  $To = '+60124364147@sms.orsted.com'
                   Write-Host "[$Username]Sending SMS Password to $mobilephone.."
                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
                   write-host "[$Username]SMS password sent to $To"
@@ -484,8 +484,8 @@ Function Reset-AdPwd {
 
           function SendUsr {
                 if ($PasswordisReset -eq $true) {
-                $To = $ADUserEmail
-                # $To = 'almaz@orsted.com'
+                # $To = $ADUserEmail
+                $To = 'almaz@orsted.com'
                 # $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
                 Send-SDMail -to $To -FullName $FullName -SendPwdTo User
