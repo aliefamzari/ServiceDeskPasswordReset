@@ -4,9 +4,9 @@
     "ScriptPath": "split-path -parent $MyInvocation.MyCommand.Definition",
     "LogPath": "c:\\hp\\write-log.log",
     "PasswordLength": "12",
-    "MailSender": "ï¿½rsted SD AAC <SD_Assistance@orsted.com>",
+    "MailSender": "Ørsted SD AAC <SD_Assistance@orsted.com>",
     "ChangePasswordAtLogon": "$true",
-    "OrgName": "ï¿½rsted",
+    "OrgName": "Ørsted",
     "SMSaddress": "@sms.orsted.com",
     "DisplayPasswordOnScreen": "$true"
 }
