@@ -474,8 +474,8 @@ Function Reset-AdPwd {
           } #End SendMgr
           function SendSMS {
                   $To = $mobilephone.Replace(" ","")
-                  # $To = $To + $SMSAddress
-                  $To = '+60124364147@sms.orsted.com'
+                  $To = $To + $SMSAddress
+                  # $To = '+60124364147@sms.orsted.com'
                   Write-Host "[$Username]Sending SMS Password to $mobilephone.."
                   Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
                   write-host "[$Username]SMS password sent to $To"
