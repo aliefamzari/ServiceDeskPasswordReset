@@ -351,7 +351,7 @@ Function Reset-AdPwd {
         $UserName,
         [String]
         [Parameter()]
-        [ValidateSet("Manager","SMS","User","ManagerSMSUser")]
+        [ValidateSet("Manager","SMS","User","ManagerSMSUser","Bulk")]
         $MailTo,
         [Parameter(Mandatory=$false)]
         [Int]$PasswordLength = 12
@@ -453,61 +453,8 @@ Function Reset-AdPwd {
                 $PasswordisReset = $false
             }
         }
-
-
-        switch ($PasswordisReset) {
-            True {
-                Write-Host "[$Username]Password is reset" -ForegroundColor Cyan
-                Write-log -level info -data "[$Username]Password is reset"
-                if ($DisplayPasswordOnScreen -eq '$true') {
-                    Write-host "[$Username]Password is: "-NoNewline 
-                    Write-host "$Password" -ForegroundColor Cyan
-                }
-                switch ($type) {
-                    1 { if ($mailto -eq "") {
-                        Write-Host "Callback $mobilephone"
-                        }
-                    }
-                    2 { 
-                          switch ($mailto) {
-                            '' {
-                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                $mailto = 'manager'
-                                }
-                            ManagerSMSUser {
-                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                $mailto = 'manager'
-                                }
-                            SMS {
-                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
-                                $mailto = 'manager'
-                                }
-                            Manager {
-                                $mailto = 'manager'
-                                }
-                        }
-                    }
-                    3 { if ($mailto -eq "") {
-                        Write-Host "Callback $mobilephone"d
-                        }
-                        if ($mailto -eq 'ManagerSMSUser' -or 'Manager') {
-                        Write-host "Manager not exist. Sending to SMS instead.."
-                        $mailto = SMS
-                        }
-                    }
-                }
-        
-            }
-            false {
-                write-host "[$Username]Error:Password not reset" -ForegroundColor Red
-                Write-log -level Error -data "[$Username]Password not reset"
-            }
-        }
-        #Region Send Function
-        function SendMgr {
+          #Region Send Function
+          function SendMgr {
             if ($PasswordisReset -eq $true) {
             $To =  "almaz@orsted.com"
             # $To = $ManagerEmail
@@ -522,31 +469,140 @@ Function Reset-AdPwd {
                 write-log -level Info -data "[$Username]Mail sent to Manager $ManagerEmail"
                 $ManagerEmail = $null
                 }
-            } #End SendMgr
-
-        }
-        function SendSMS {
-            $To = $mobilephone.Replace(" ","")
-            # $To = $To + $SMSAddress
-            $To = '+60124364147@sms.orsted.com'
-            Write-Host "[$Username]Sending SMS to $mobilephone.."
-            Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
-            write-host "[$Username]Mail sent to $To"
-            Write-Log -Level Info -Data "[$Username]Mail sent to SMS $to"
-        } #End SendSMS
-
-        function SendUsr {
-            if ($PasswordisReset -eq $true) {
-            # $To = $ADUserEmail
-            $To = 'almaz@orsted.com'
-            # $FullName = $ADUser.GivenName + " " + $ADUser.surname
-            Write-Host "[$Username]Sending mail to $ADUserEmail.."
-            Send-SDMail -to $To -FullName $FullName -SendPwdTo User
-            Write-Host  "[$Username]Mail sent to $To"
-            Write-Log -Level Info -Data "[$Username]Mail sent to $to"
             }
-        } #En
-        #EndRegion Send Function
+
+          } #End SendMgr
+          function SendSMS {
+                  $To = $mobilephone.Replace(" ","")
+                  # $To = $To + $SMSAddress
+                  $To = '+60124364147@sms.orsted.com'
+                  Write-Host "[$Username]Sending SMS Password to $mobilephone.."
+                  Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo SMS -Passwd $Password
+                  write-host "[$Username]SMS password sent to $To"
+                  Write-Log -Level Info -Data "[$Username]SMS password sent to $To"
+          } #End SendSMS
+
+          function SendUsr {
+                if ($PasswordisReset -eq $true) {
+                # $To = $ADUserEmail
+                $To = 'almaz@orsted.com'
+                # $FullName = $ADUser.GivenName + " " + $ADUser.surname
+                Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
+                Send-SDMail -to $To -FullName $FullName -SendPwdTo User
+                Write-Host  "[$Username]Notification mail sent to $To"
+                Write-Log -Level Info -Data "[$Username]Notification mail sent to $to"
+                }
+          } #End SendUsr
+          #EndRegion Send Function
+
+        switch ($PasswordisReset) {
+            True {
+                Write-Host "[$Username]Password is reset" -ForegroundColor Cyan
+                Write-log -level info -data "[$Username]Password is reset"
+                if ($DisplayPasswordOnScreen -eq '$true') {
+                    Write-host "[$Username]Password is: "-NoNewline 
+                    Write-host "$Password" -ForegroundColor Cyan
+                }
+                switch ($type) {
+                    1 {
+                      Switch ($MailTo) {
+                        '' {
+                            Write-Host "[$Username]Callback $mobilephone"
+                            Write-log -level info -data "[$Username]Callback $mobilephone"
+
+                        }
+                        SMS {
+                          # $MailTo = SMS
+                          Write-Host "[$Username]Callback $mobilephone"
+                          Write-log -level info -data "[$Username]Callback $mobilephone"
+                          SendUsr
+                        }
+                        Manager {
+                          # $Mailto = Manager
+                          SendUsr
+                        }
+
+                        # ManagerSMSUser{
+                        #   $MailTo =  ManagerSMSUser
+                        # }
+                        Bulk {
+                          $MailTo = 'Manager'
+                        }
+                  
+                        
+                      }
+                    }
+                    2 { 
+                          switch ($mailto) {
+                            '' {
+                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                $mailto = 'manager'
+                                SendUsr
+                                }
+                            ManagerSMSUser {
+                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                $mailto = 'manager'
+                                SendUsr
+                                }
+                            SMS {
+                                Write-Host "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                Write-Log -level Warning -Data "[$Username]Mobilephone is empty. Sending to Manager instead"
+                                $mailto = 'manager'
+                                SendUsr
+                                }
+                            Manager {
+                                $mailto = 'manager'
+                                SendUsr
+                                }
+                            Bulk {
+                                $MailTo = 'manager'
+                                }
+                        }
+                    }
+                    3 { 
+                      switch ($MailTo) {
+                        '' {  
+                          Write-Host "[$Username]Callback $mobilephone"
+                          Write-log -level info -data "[$Username]Callback $mobilephone"
+                        }
+                        ManagerSMSUser{
+                          Write-Host "[$Username]Callback $mobilephone"
+                          Write-log -level info -data "[$Username]Callback $mobilephone"
+                          Write-host "Manager not exist. Sending to SMS instead.."
+                          $mailto = 'SMS'
+                          SendUsr
+
+                        }
+                        SMS {
+                          $mailto = 'SMS'
+                          SendUsr
+                        }
+                        Manager {
+                          Write-Host "[$Username] Callback $mobilephone"
+                          Write-log -level info -data "[$Username]Callback $mobilephone"
+                          Write-host "Manager not exist. Sending to SMS instead.."
+                          $mailto = 'SMS'
+                          SendUsr
+                        }
+                        Bulk {
+                          Write-Host "[$Username]Password reset. But not send" -ForegroundColor Yellow
+                          write-log -Level Warning -data "[$Username]Password reset. But not send"
+                          Write-Host "[$Username]Manager is empty" -ForegroundColor Yellow
+                          write-log -Level Warning -Data "[$Username]Manager is empty" 
+                        }
+                      }
+                    }
+                }
+        
+            }
+            false {
+                write-host "[$Username]Error:Password not reset" -ForegroundColor Red
+                Write-log -level Error -data "[$Username]Password not reset"
+            }
+        }
+
 
         switch ($MailTo) {
             Manager { if ($PasswordisReset -and $type -match '[1-2]') {
@@ -565,10 +621,15 @@ Function Reset-AdPwd {
             }
 
             ManagerSMSUser { if ($PasswordisReset) {
-                SendMgr
-                SendSMS
-                SendUsr
-                }
+                    SendMgr
+                    SendSMS
+                    SendUsr
+                    }
+
+            }
+            Bulk { if ($PasswordisReset) {
+                    SendMgr
+                    }
 
             }
         }
@@ -866,11 +927,11 @@ function Reset-PwdMulti {
 
             if ($PasswordLength -eq 0){
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item -MailTo Manager
+              Reset-AdPwd -Username $item -MailTo Bulk
             }
             else {
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Manager
+              Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Bulk
             }
           }
       catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
@@ -900,9 +961,9 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
       Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Callback]"
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Send SMS and Callback]"
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to SMS(if available) and Manager"
+      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager"
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
       Write-Host
@@ -944,11 +1005,11 @@ Function Show-SDPasswdResetMenu {
               [int]$Passwordlength = Read-Host
               if ($Passwordlength -lt 12) {
                 Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-                Reset-AdPwd -Username $Username
+                Reset-AdPwd -Username $Username -MailTo SMS
               }
               else {
                 Write-Host "Password Length is $PasswordLength"
-                Reset-AdPwd -Username $Username -PasswordLength $Passwordlength
+                Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
               }
               Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
               Write-Host "`nPress any key to return to the previous menu"
@@ -966,11 +1027,11 @@ Function Show-SDPasswdResetMenu {
             [int]$Passwordlength = Read-Host
             if ($Passwordlength -lt 12) {
               Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-              Reset-AdPwd -Username $Username -MailTo ManagerSMSUser
+              Reset-AdPwd -Username $Username -MailTo Manager
             }
             else {
               Write-Host "Password Length is $PasswordLength"
-              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo ManagerSMSUser
+              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo Manager
             }
             Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
             Write-Host "`nPress any key to return to the previous menu"
