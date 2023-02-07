@@ -759,8 +759,8 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager via email.(Format CSV with line breaks delimiter)."
       Write-Host
-      Write-Host "Current Settings config.json"
-      write-host "----------------------------"
+      # Write-Host "Current Settings config.json"
+      # write-host "----------------------------"
       if ($DisplayPasswordOnScreen -eq '$true') {
         Write-Host "DisplayPasswordOnScreen : "-NoNewline
         Write-Host "ON" -ForegroundColor DarkGreen
