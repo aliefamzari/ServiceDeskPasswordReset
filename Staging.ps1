@@ -149,10 +149,10 @@ Function New-RandomizedPassword {
         }
         $RequiresSpecial
         {
-            # These are the characters !"#$%&()*+-/?@
-            $null = $PasswordCharacterArray.Add(((33,34,35,36,37,38,40,41,42,43,45,47,63,64) | Get-Random | ForEach-Object {[char]$_}))
+            # These are the characters !#$%&+?@
+            $null = $PasswordCharacterArray.Add(((33,35,36,37,38,43,63,64) | Get-Random | ForEach-Object {[char]$_}))
             $PasswordLength = $PasswordLength - 1
-            $null = $CharacterSpaceArray.Add((33,34,35,36,37,38,40,41,42,43,45,47,63,64))
+            $null = $CharacterSpaceArray.Add((33,35,36,37,38,43,63,64))
         }
     }
     # Add a lowercase character. Excluded 'l' and 'o'

@@ -9,7 +9,7 @@
 #Region GlobalVariable Read from config.json
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 $Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
-$LogPath = $Config.LogPath
+$LogPath = "$env:USERPROFILE\ServiceDeskPasswordReset.log"
 $MailSender = $Config.MailSender
 $SMTPServer = $Config.SmtpServer
 $DomainName = $Config.DomainName
