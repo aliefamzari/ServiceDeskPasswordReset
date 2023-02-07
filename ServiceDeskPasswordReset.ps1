@@ -231,14 +231,26 @@ Function Get-UserType {
 
 
   try {
-      $ADUser = get-aduser $UserName -server $DC -Properties Givenname,Surname,Manager,Enabled,mobilephone,mail -ErrorAction Stop
+      $ADUser = get-aduser $UserName -server $DC -Properties memberof,userprincipalname,Givenname,Surname,Manager,Enabled,mobilephone,mail,msDS-UserPasswordExpiryTimeComputed,lockedout,title,department,division,employeenumber,office,country,PasswordExpired,PasswordLastSet -ErrorAction Stop
       $Enabled = $ADUser.Enabled
       $Sam = $ADuser.SAMAccountName
       $Fullname = $ADUser.givenname + " " + $ADUser.surname
       $Manager = $ADUser.Manager
       $ADUserEmail = $ADUser.mail
       $mobilephone = $ADUser.mobilephone
+      $LockedOut = $ADUser.lockedout
+      $Country = $ADUser.country
+      $Title = $ADUser.title
+      $Department = $ADUser.department
+      $EmployeeNumber = $ADUser.employeenumber
+      $Office = $ADUser.office
+      $UserPrincipalName = $ADUser.userprincipalname
+      $PasswordExpired = $ADUser.PasswordExpired
+      $PasswordLastSet =  $ADUser.PasswordLastSet
+      $PassworDaysLeft = (([datetime]::FromFileTime($ADuser.'msDS-UserPasswordExpiryTimeComputed'))-(Get-Date)).Days
+      $isADM = $aduser.memberof.Contains('CN=ADM Accounts,OU=Specielle Konti,OU=DE-PROD.DK,DC=de-prod,DC=dk')
       $AccountExist = $true
+
   }
   catch {
       $AccountExist = $false
@@ -266,19 +278,20 @@ Function Get-UserType {
 
   #Region User Type Matrix
    <#
-      +------------+------------+---------------+-------------------+-----------------+
-      | User Type  | IsEnabled  | ManagerExist  | MobilePhoneExist  | Password Reset  |
-      +------------+------------+---------------+-------------------+-----------------+
-      | 1          | y          | y             | y                 | y               |
-      | 2          | y          | y             | n                 | y               |
-      | 3          | y          | n             | y                 | y               |
-      | 4          | y          | n             | n                 | n               |
-      | 5          | n          | n             | n                 | n               |
-      | 6          | n          | y             | n                 | n               |
-      | 7          | n          | n             | y                 | n               |
-      | 8          | n          | y             | y                 | n               |
-      | 9          | n          | n             | n                 | n               |
-      +------------+------------+---------------+-------------------+-----------------+
+    +-----------+-----------+--------------+------------------+----------------+
+    | User Type | IsEnabled | ManagerExist | MobilePhoneExist | Password Reset |
+    +-----------+-----------+--------------+------------------+----------------+
+    | 1         | y         | y            | y                | y              |
+    | 2         | y         | y            | n                | y              |
+    | 3         | y         | n            | y                | y              |
+    | 4         | y         | n            | n                | n              |
+    | 5         | n         | n            | n                | n              |
+    | 6         | n         | y            | n                | n              |
+    | 7         | n         | n            | y                | n              |
+    | 8         | n         | y            | y                | n              |
+    | 9         | n         | n            | n                | n              |
+    | 10        | na        | na           | na               | n              |
+    +-----------+-----------+--------------+------------------+----------------+
    #>
    $type1 = ($Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist) 
    $type2 = ($Enabled -and $ManagerExist -and !$MobilePhoneisExist -and $AccountExist)
@@ -289,6 +302,7 @@ Function Get-UserType {
    $type7 = (!$Enabled -and !$ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type9 = (!$AccountExist)
+   $type10 = ($isADM)
   #EndRegion User Type Matrix
   switch ($true) {
       $type1 { 
@@ -327,19 +341,37 @@ Function Get-UserType {
           $PR = $false
           $type = 9
       }
+      $type10 { 
+          $PR = $false
+          $type = 10
+    }
   }
   $Object = New-Object PSCustomObject 
   $Object | Add-Member -MemberType NoteProperty -Name "Type" -Value $type
+  $Object | Add-Member -MemberType NoteProperty -Name "isADM" -Value $isADM
   $Object | Add-Member -MemberType NoteProperty -Name "isEnabled" -Value $Enabled
   $Object | Add-Member -MemberType NoteProperty -Name "Sam" -Value $Sam
   $Object | Add-Member -MemberType NoteProperty -Name "FullName" -Value $Fullname
   $Object | Add-Member -MemberType NoteProperty -Name "Mail" -Value $ADUserEmail
+  $Object | Add-Member -MemberType NoteProperty -Name "UserPrincipalName" -Value $UserPrincipalName
   $Object | Add-Member -MemberType NoteProperty -Name "MobilePhone" -Value $mobilephone
   $Object | Add-Member -MemberType NoteProperty -Name "Manager" -Value $Manager
   $Object | Add-Member -MemberType NoteProperty -Name "ManagerEmail" -Value $ManagerEmail
   $Object | Add-Member -MemberType NoteProperty -Name "ManagerFullName" -Value $ManagerFulLName
   $Object | Add-Member -MemberType NoteProperty -Name "PasswordisReset" -Value $PR
   $Object | Add-Member -MemberType NoteProperty -Name "AccountExist" -Value $AccountExist
+  $Object | Add-Member -MemberType NoteProperty -Name "PasswordDaysLeft" -Value $PassworDaysLeft
+  $Object | Add-Member -MemberType NoteProperty -Name "PasswordExpired" -Value $PasswordExpired
+  $Object | Add-Member -MemberType NoteProperty -Name "PasswordLastSet" -Value $PasswordLastSet
+  $Object | Add-Member -MemberType NoteProperty -Name "LockedOut" -Value $LockedOut
+  $Object | Add-Member -MemberType NoteProperty -Name "Country" -Value $Country
+  $Object | Add-Member -MemberType NoteProperty -Name "EmployeeNumber" -Value $employeenumber
+  $Object | Add-Member -MemberType NoteProperty -Name "Title" -Value $Title
+  $Object | Add-Member -MemberType NoteProperty -Name "Office" -Value $Office
+  $Object | Add-Member -MemberType NoteProperty -Name "Department" -Value $Department
+
+
+
   $Object
 }#end Get-UserType
 
@@ -374,6 +406,8 @@ Function Reset-AdPwd {
         $FullName = $TUser.FullName
         $ManagerFulLName = $TUser.ManagerFullName
         $ManagerEmail = $TUser.ManagerEmail
+        Write-Host "[$Username]User is Type $type"
+        Write-log -Level Info -Data "[$Username]User is Type $type"
         #EndRegion Get-UserType
 
         switch ($type -match '[1-3]') {
@@ -451,6 +485,10 @@ Function Reset-AdPwd {
             9 {
                 Write-Host "[$Username]Account is not exist" -ForegroundColor Yellow
                 $PasswordisReset = $false
+            }
+            10 {
+              Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
+              $PasswordisReset = $false
             }
         }
           #Region Send Function

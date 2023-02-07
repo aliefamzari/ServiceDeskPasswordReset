@@ -231,7 +231,7 @@ Function Get-UserType {
 
 
   try {
-      $ADUser = get-aduser $UserName -server $DC -Properties userprincipalname,Givenname,Surname,Manager,Enabled,mobilephone,mail,msDS-UserPasswordExpiryTimeComputed,lockedout,title,department,division,employeenumber,office,country,PasswordExpired,PasswordLastSet -ErrorAction Stop
+      $ADUser = get-aduser $UserName -server $DC -Properties memberof,userprincipalname,Givenname,Surname,Manager,Enabled,mobilephone,mail,msDS-UserPasswordExpiryTimeComputed,lockedout,title,department,division,employeenumber,office,country,PasswordExpired,PasswordLastSet -ErrorAction Stop
       $Enabled = $ADUser.Enabled
       $Sam = $ADuser.SAMAccountName
       $Fullname = $ADUser.givenname + " " + $ADUser.surname
@@ -248,7 +248,7 @@ Function Get-UserType {
       $PasswordExpired = $ADUser.PasswordExpired
       $PasswordLastSet =  $ADUser.PasswordLastSet
       $PassworDaysLeft = (([datetime]::FromFileTime($ADuser.'msDS-UserPasswordExpiryTimeComputed'))-(Get-Date)).Days
-
+      $isADM = $aduser.memberof.Contains('CN=ADM Accounts,OU=Specielle Konti,OU=DE-PROD.DK,DC=de-prod,DC=dk')
       $AccountExist = $true
 
   }
@@ -278,19 +278,20 @@ Function Get-UserType {
 
   #Region User Type Matrix
    <#
-      +------------+------------+---------------+-------------------+-----------------+
-      | User Type  | IsEnabled  | ManagerExist  | MobilePhoneExist  | Password Reset  |
-      +------------+------------+---------------+-------------------+-----------------+
-      | 1          | y          | y             | y                 | y               |
-      | 2          | y          | y             | n                 | y               |
-      | 3          | y          | n             | y                 | y               |
-      | 4          | y          | n             | n                 | n               |
-      | 5          | n          | n             | n                 | n               |
-      | 6          | n          | y             | n                 | n               |
-      | 7          | n          | n             | y                 | n               |
-      | 8          | n          | y             | y                 | n               |
-      | 9          | n          | n             | n                 | n               |
-      +------------+------------+---------------+-------------------+-----------------+
+    +-----------+-----------+--------------+------------------+----------------+
+    | User Type | IsEnabled | ManagerExist | MobilePhoneExist | Password Reset |
+    +-----------+-----------+--------------+------------------+----------------+
+    | 1         | y         | y            | y                | y              |
+    | 2         | y         | y            | n                | y              |
+    | 3         | y         | n            | y                | y              |
+    | 4         | y         | n            | n                | n              |
+    | 5         | n         | n            | n                | n              |
+    | 6         | n         | y            | n                | n              |
+    | 7         | n         | n            | y                | n              |
+    | 8         | n         | y            | y                | n              |
+    | 9         | n         | n            | n                | n              |
+    | 10        | na        | na           | na               | n              |
+    +-----------+-----------+--------------+------------------+----------------+
    #>
    $type1 = ($Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist) 
    $type2 = ($Enabled -and $ManagerExist -and !$MobilePhoneisExist -and $AccountExist)
@@ -301,6 +302,7 @@ Function Get-UserType {
    $type7 = (!$Enabled -and !$ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type9 = (!$AccountExist)
+   $type10 = ($isADM)
   #EndRegion User Type Matrix
   switch ($true) {
       $type1 { 
@@ -339,9 +341,14 @@ Function Get-UserType {
           $PR = $false
           $type = 9
       }
+      $type10 { 
+          $PR = $false
+          $type = 10
+    }
   }
   $Object = New-Object PSCustomObject 
   $Object | Add-Member -MemberType NoteProperty -Name "Type" -Value $type
+  $Object | Add-Member -MemberType NoteProperty -Name "isADM" -Value $isADM
   $Object | Add-Member -MemberType NoteProperty -Name "isEnabled" -Value $Enabled
   $Object | Add-Member -MemberType NoteProperty -Name "Sam" -Value $Sam
   $Object | Add-Member -MemberType NoteProperty -Name "FullName" -Value $Fullname
@@ -399,6 +406,9 @@ Function Reset-AdPwd {
         $FullName = $TUser.FullName
         $ManagerFulLName = $TUser.ManagerFullName
         $ManagerEmail = $TUser.ManagerEmail
+        Write-Host "[$Username]User is Type $type"
+        Write-log -Level Info -Data "[$Username]User is Type $type"
+
         #EndRegion Get-UserType
 
         switch ($type -match '[1-3]') {
@@ -476,6 +486,10 @@ Function Reset-AdPwd {
             9 {
                 Write-Host "[$Username]Account is not exist" -ForegroundColor Yellow
                 $PasswordisReset = $false
+            }
+            10 {
+              Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
+              $PasswordisReset = $false
             }
         }
           #Region Send Function
@@ -748,8 +762,8 @@ Function Show-SDPasswdResetMenu {
       Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "4"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
       Write-Host -ForegroundColor $ItemTextColor " Query User Active-Directory Info"
       Write-Host
-      Write-Host "Current Settings config.json"
-      write-host "----------------------------"
+      # Write-Host "Current Settings config.json"
+      # write-host "----------------------------"
       if ($DisplayPasswordOnScreen -eq '$true') {
         Write-Host "DisplayPasswordOnScreen : "-NoNewline
         Write-Host "ON" -ForegroundColor DarkGreen
@@ -836,7 +850,7 @@ Function Show-SDPasswdResetMenu {
           }
           4 { 
             function show-query {
-              Write-Host "Enter SamAccountName: " -NoNewline
+              Write-Host "Query user: " -NoNewline
               $username = Read-host
               Get-UserType -username $username -dc de-prod.dk
           }
