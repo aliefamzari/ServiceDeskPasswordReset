@@ -290,7 +290,7 @@ Function Get-UserType {
     | 7         | n         | n            | y                | n              |
     | 8         | n         | y            | y                | n              |
     | 9         | n         | n            | n                | n              |
-    | 10        | na        | na           | na               | n              |
+    | adm        | na        | na           | na               | n              |
     +-----------+-----------+--------------+------------------+----------------+
    #>
    $type1 = ($Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist) 
@@ -302,7 +302,7 @@ Function Get-UserType {
    $type7 = (!$Enabled -and !$ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type9 = (!$AccountExist)
-   $type10 = ($isADM)
+   $adm = ($isADM)
   #EndRegion User Type Matrix
   switch ($true) {
       $type1 { 
@@ -341,9 +341,9 @@ Function Get-UserType {
           $PR = $false
           $type = 9
       }
-      $type10 { 
+      $adm { 
           $PR = $false
-          $type = 10
+          $type = 'adm'
     }
   }
   $Object = New-Object PSCustomObject 
@@ -410,7 +410,7 @@ Function Reset-AdPwd {
         Write-log -Level Info -Data "[$Username]User is Type $type"
         #EndRegion Get-UserType
 
-        switch ($type -match '[1-3]') {
+        switch ($type -match '[1][2][3]') {
             $True {
                 $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
@@ -486,7 +486,7 @@ Function Reset-AdPwd {
                 Write-Host "[$Username]Account is not exist" -ForegroundColor Yellow
                 $PasswordisReset = $false
             }
-            10 {
+            'adm' {
               Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
               $PasswordisReset = $false
             }
