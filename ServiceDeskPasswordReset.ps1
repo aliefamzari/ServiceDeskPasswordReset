@@ -406,7 +406,7 @@ Function Reset-AdPwd {
         $FullName = $TUser.FullName
         $ManagerFulLName = $TUser.ManagerFullName
         $ManagerEmail = $TUser.ManagerEmail
-        Write-Host "[$Username]User is Type $type"
+        Write-Host "[$Username]Account is Type $type"
         Write-log -Level Info -Data "[$Username]User is Type $type"
         #EndRegion Get-UserType
 
