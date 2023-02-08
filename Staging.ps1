@@ -302,7 +302,7 @@ Function Get-UserType {
    $type7 = (!$Enabled -and !$ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type8 = (!$Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist)
    $type9 = (!$AccountExist)
-   $adm = ($isADM)
+   $type10 = ($isADM)
   #EndRegion User Type Matrix
   switch ($true) {
       $type1 { 
@@ -341,9 +341,9 @@ Function Get-UserType {
           $PR = $false
           $type = 9
       }
-      $adm { 
+      $type10 { 
           $PR = $false
-          $type = 'adm'
+          $type = 10
     }
   }
   $Object = New-Object PSCustomObject 
@@ -411,7 +411,7 @@ Function Reset-AdPwd {
 
         #EndRegion Get-UserType
 
-        switch ($type -match '[01,02,03]') {
+        switch ($type -like '[1-3]') {
             $True {
                 $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
@@ -487,7 +487,7 @@ Function Reset-AdPwd {
                 Write-Host "[$Username]Account is not exist" -ForegroundColor Yellow
                 $PasswordisReset = $false
             }
-            'adm' {
+            10 {
               Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
               $PasswordisReset = $false
             }
