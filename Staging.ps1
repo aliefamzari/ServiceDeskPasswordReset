@@ -226,7 +226,9 @@ Function Get-UserType {
       [String]
       $DC,
       [bool]
-      $PR
+      $PR,
+      [bool]
+      $HostQueryResult
       )
 
 
@@ -265,7 +267,8 @@ Function Get-UserType {
   #EndRegion CheckPhone
 
   #Region Check-Manager
-  if($manager) {
+  if ($pr) {
+    if($manager) {
       $Manager = Get-ADuser $manager -server $DC -Properties mail,givenname,surname -ErrorAction Stop
       $ManagerEmail = $Manager.mail
       $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
@@ -274,6 +277,8 @@ Function Get-UserType {
   else {
       $ManagerExist = $false
   }
+  }
+
   #EndRegion Check-Manager
 
   #Region User Type Matrix
@@ -370,9 +375,43 @@ Function Get-UserType {
   $Object | Add-Member -MemberType NoteProperty -Name "Office" -Value $Office
   $Object | Add-Member -MemberType NoteProperty -Name "Department" -Value $Department
 
+  function HostQueryResult {
+    $ManagerCN = $Object.manager -replace ("CN=","") -split ',' |Select-Object -first 1
+    write-host
+    write-host "Type: $($Object.type)"
+    write-host "isADM: $($Object.isadm)"
+    if (!$object.isEnabled){write-host "isEnabled: $($Object.isEnabled)" -ForegroundColor Red}
+    Else {write-host "isEnabled: $($Object.isEnabled)"}
+    write-host "Sam: $($Object.Sam)"
+    write-host "FullName: $($Object.FullName)"
+    write-host "Mail: $($Object.Mail)"
+    write-host "UserPrincipalName: $($Object.UserPrincipalName)"
+    write-host "MobilePhone: $($Object.MobilePhone)"
+    write-host "ManagerSAM: $($ManagerCN)"
+    write-host "ManagerEmail: $($Object.ManagerEmail)"
+    write-host "ManagerFullName: $($Object.ManagerFullName)"
+    write-host "PasswordisReset: $($Object.PasswordisReset)"
+    if (!$object.AccountExist){write-host "AccountExist: $($Object.AccountExist)" -ForegroundColor Red}
+    Else {write-host "AccountExist: $($Object.AccountExist)"}
+    write-host "PasswordDaysLeft: $($Object.PasswordDaysLeft)"
+    write-host "PasswordExpired: $($Object.PasswordExpired)"
+    write-host "PasswordLastSet: $($Object.PasswordLastSet)"
+    if ($object.lockedout){write-host "LockedOut: $($Object.lockedout)" -ForegroundColor Red}
+    Else {write-host "LockedOut: $($Object.lockedout)"}
+    write-host "Country: $($Object.country)"
+    write-host "EmployeeNumber: $($Object.employeenumber)"
+    write-host "Title: $($Object.Title)"
+    write-host "Office: $($Object.Office)"
+    write-host "Department: $($Object.Department)"
+    Write-Host
+  }
+  if ($HostQueryResult){
+    HostQueryResult
+    }
+  else {
+    $Object
+  }
 
-
-  $Object
 }#end Get-UserType
 
 Function Reset-AdPwd {
@@ -396,13 +435,13 @@ Function Reset-AdPwd {
         Write-host "Querying $Username in Active-Directory"
 
         #Region Get-UserType
-        $TUser = (Get-UserType -UserName $username -dc $dc)
+        $TUser = (Get-UserType -UserName $username -dc $dc -pr $True -HostQueryResult $false)
         $Type = $TUser.Type
         $Mobilephone = $TUser.mobilephone
         $PasswordisReset = $TUser.$PasswordisReset
         $Manager = $TUser.manager
         $ADUserEmail = $TUser.Mail
-        $AccountExist = $Tuser.AccountExist
+        # $AccountExist = $Tuser.AccountExist
         $FullName = $TUser.FullName
         $ManagerFulLName = $TUser.ManagerFullName
         $ManagerEmail = $TUser.ManagerEmail
@@ -735,141 +774,252 @@ function Reset-PwdMulti {
   }
 } #end Reset-PwdMulti
 
-Function Show-SDPasswdResetMenu {
-  clear-host
-  $pswho = $env:USERNAME
-  $TitleColor = "White"
-  $MenuTitleColor = "Cyan"
-  $ItemNumberColor = "Cyan"
-  $ItemTextColor = "White"
-  $ItemWarningColor = "Yellow"
-  Write-Host "Enter your admin account for Active Directory. This will be use as the credentials to perform password reset." -ForegroundColor Cyan
-  $AdmCredential = Get-AdmCred
- 
+Function Unlock-SD {
+  [CmdletBinding()]
+  param(
+      [Parameter()]
+      [String]
+      $UserName,
+      [String]
+      $DC
+  )
+  Write-Host "Retrieving PDC for $DomainName"
+  $DC = Get-PDC -DomainName $DomainName
+  Write-Host "Using $DC as DC for the $DomainName domain"
+  $ADUser = Get-UserType -UserName $Username -dc $DC -PR $false
+  $Enabled = $ADUser.isEnabled
+  $AccountExist = $ADUser.AccountExist
+  $isLocked = $ADUser.lockedout
   
-
-  While ($Menu -ne '') {
-      Clear-Host
-      Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Tool`n"
-      Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
-      Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
-      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Send SMS and Callback]"
-      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager"
-      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager. [Format CSV with line breaks delimiter]."
-      Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "4"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-      Write-Host -ForegroundColor $ItemTextColor " Query User Active-Directory Info"
-      Write-Host
-      # Write-Host "Current Settings config.json"
-      # write-host "----------------------------"
-      if ($DisplayPasswordOnScreen -eq '$true') {
-        Write-Host "DisplayPasswordOnScreen : "-NoNewline
-        Write-Host "ON" -ForegroundColor DarkGreen
+  function unlock {
+      try {
+          Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
+          $script:Unlocked = $true
       }
-      else {
-        Write-Host "DisplayPasswordOnScreen : "-NoNewline
-        Write-Host "OFF" -ForegroundColor Red
+      catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
+          $Unlocked = $false
+          Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
+          Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
       }
-      if ($ChangePasswordAtLogon -eq '$true') {
-        Write-Host "ChangePasswordAtLogon : "-NoNewline
-        Write-Host "ON" -ForegroundColor DarkGreen
+      catch [System.Management.Automation.ParameterBindingException] {
+          $Unlocked = $false
+          Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
+          Write-log -Level Error -Data "Invalid Parameter -Active Directory"
       }
-      else {
-        Write-Host "ChangePasswordAtLogon : "-NoNewline
-        Write-Host "OFF" -ForegroundColor Red
+      catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
+          $Unlocked = $false
+          Write-Host "AD service error" -ForegroundColor Red
+          Write-log -Level Error "AD service error"
       }
-      # Write-Host "Dommain Name : $DomainName"
-      # Write-Host "Organization Name : $OrgName"
-      # Write-Host "SMTP Server : $SMTPServer"
-      # Write-host "Mail Sender : $MailSender"
-      # Write-Host "Log Path : $LogPath"
-      
-      $menu = Read-Host "`nSelection (leave blank to quit)"
-      Switch ($Menu) {
-          1 {  
-              Write-Host "Enter SamAccountName: " -NoNewline
-              $Username = Read-Host
-              while ($username -eq '') {
-                Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
-                Write-Host "EnterSamAccountName: " -NoNewline
-                $Username = Read-host
-              }
-              Write-Host "Enter Password length [default is 12]: " -NoNewline
-              [int]$Passwordlength = Read-Host
-              if ($Passwordlength -lt 12) {
-                Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-                Reset-AdPwd -Username $Username -MailTo SMS
-              }
-              else {
-                Write-Host "Password Length is $PasswordLength"
-                Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
-              }
-              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
-              Write-Host "`nPress any key to return to the previous menu"
-              [void][System.Console]::ReadKey($true)
-          }
-          2 {
-            Write-Host "Enter SamAccountName: " -NoNewline
-            $Username = Read-Host
-            while ($username -eq '') {
-              Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
-              Write-Host "EnterSamAccountName: " -NoNewline
-              $Username = Read-host
-            }
-            Write-Host "Enter Password length [default is 12]: " -NoNewline
-            [int]$Passwordlength = Read-Host
-            if ($Passwordlength -lt 12) {
-              Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-              Reset-AdPwd -Username $Username -MailTo Manager
-            }
-            else {
-              Write-Host "Password Length is $PasswordLength"
-              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo Manager
-            }
-            Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
-            Write-Host "`nPress any key to return to the previous menu"
-            [void][System.Console]::ReadKey($true)
-            
-          }
-          3 {
-              Write-Host "Enter Password length [default is 12]: " -NoNewline
-              [int]$Passwordlength = Read-Host
-              if ($Passwordlength -lt 12) {
-                Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-                Reset-PwdMulti
-              }
-              else {
-                Write-Host "Password Length is $PasswordLength"
-                Reset-PwdMulti -PasswordLength $Passwordlength
-              }
-              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
-              Write-Host "`nPress any key to return to the previous menu"
-              [void][System.Console]::ReadKey($true)           
-          }
-          4 { 
-            function show-query {
-              Write-Host "Query user: " -NoNewline
-              $username = Read-host
-              Get-UserType -username $username -dc de-prod.dk
-          }
-          
-          do
-           {
-              show-query
-              $selection = Read-Host "Press Enter to search again or 'n' to exit"
-              switch ($selection) {
-                'y'{
-                    show-query
-                  } 
-              }
-              
-           }
-           until ($selection -eq 'n')
-          }
+      catch [System.Management.Automation.PSArgumentException]{
+          $Unlocked = $false
+          Write-Host "Username exception" -ForegroundColor Red
+      }
+      catch {
+          $Unlocked = $false
+          write-host "catch"
       }
   }
+
+  switch ($Enabled -and $AccountExist) {
+    True {
+          switch ($isLocked) {
+            True {
+                Write-host "[$Username]Account is locked. Proceed to unlock"
+                unlock
+            }
+            false {
+                Write-host "[$Username]Account is not locked in current PDC" 
+                write-host "Forece Unlock?["-NoNewline; Write-Host "Y" -ForegroundColor Cyan -NoNewline; Write-Host "/" -NoNewline; Write-Host "N" -ForegroundColor Cyan -NoNewline; Write-Host "]: " -NoNewline
+                $input = read-host 
+                switch ($input){
+                    y {unlock}
+                    n {Write-Host 'Cancelled'}
+                }
+            }
+        }
+    }
+    False {
+      if (!$AccountExist) {
+        Write-Host "Account not exist"
+      }
+      else{
+        Write-Host "Account Disabled"
+      }
+    }
+  }
+  if ($unlocked) {
+    write-host "Account unlocked."
+  }
+  else {
+    write-host "Account not unlocked."
+  }
+}
+
+Function Show-SDPasswdResetMenu {
+      clear-host
+      $pswho = $env:USERNAME
+      $TitleColor = "White"
+      $MenuTitleColor = "Cyan"
+      $ItemNumberColor = "Cyan"
+      $ItemTextColor = "White"
+      $ItemWarningColor = "Yellow"
+      Write-Host "Enter your admin account for Active Directory. This will be use as the credentials to perform password reset." -ForegroundColor Cyan
+      $AdmCredential = Get-AdmCred
+
+      While ($Menu -ne '') {
+          Clear-Host
+          Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Tool`n"
+          Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
+          Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
+          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Send SMS and Callback]"
+          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager"
+          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager. [Format CSV with line breaks delimiter]."
+          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "4"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+          Write-Host -ForegroundColor $ItemTextColor " Query User Active-Directory Info"
+          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "5"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
+          Write-Host -ForegroundColor $ItemTextColor " Unlock user account"
+
+          Write-Host
+          # Write-Host "Current Settings config.json"
+          # write-host "----------------------------"
+          if ($DisplayPasswordOnScreen -eq '$true') {
+            Write-Host "DisplayPasswordOnScreen : "-NoNewline
+            Write-Host "ON" -ForegroundColor DarkGreen
+          }
+          else {
+            Write-Host "DisplayPasswordOnScreen : "-NoNewline
+            Write-Host "OFF" -ForegroundColor Red
+          }
+          if ($ChangePasswordAtLogon -eq '$true') {
+            Write-Host "ChangePasswordAtLogon : "-NoNewline
+            Write-Host "ON" -ForegroundColor DarkGreen
+          }
+          else {
+            Write-Host "ChangePasswordAtLogon : "-NoNewline
+            Write-Host "OFF" -ForegroundColor Red
+          }
+          # Write-Host "Dommain Name : $DomainName"
+          # Write-Host "Organization Name : $OrgName"
+          # Write-Host "SMTP Server : $SMTPServer"
+          # Write-host "Mail Sender : $MailSender"
+          # Write-Host "Log Path : $LogPath"
+          Write-Host "`nPress [" -NoNewline; Write-Host "ENTER" -NoNewline -ForegroundColor Cyan; Write-Host "] to quit: " -NoNewline
+          $menu = Read-Host 
+          Switch ($Menu) {
+              1 {  
+                  do
+                  {
+                      Write-Host "Enter SamAccountName: " -NoNewline
+                      $username = Read-host
+                      Get-UserType -username $username -dc de-prod.dk -PR $true -HostQueryResult $true
+                      "Are you sure you want to reset this account password?"
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " to proceed  " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " to re-enter username  " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Q";Write-Host -NoNewline "]";write-host " quit to menu"
+                      $selection = Read-Host "Enter your selection" 
+                        # [void][System.Console]::ReadKey($true)
+                  
+                      switch ($selection) {
+                          y {
+                              Write-Host "Enter Password length [default is 12]: " -NoNewline
+                              [int]$Passwordlength = Read-Host
+                              if ($Passwordlength -lt 12) {
+                              Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
+                              Reset-AdPwd -Username $Username -MailTo SMS
+                              }
+                              else {
+                              Write-Host "Password Length is $PasswordLength"
+                              Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
+                              }
+                              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                              Write-Host "`nPress any key to return to the previous menu"
+                              [void][System.Console]::ReadKey($true)
+                              $selection = 'q'
+                          }
+                      }
+                      
+                  }
+                  until ($selection -eq 'q')
+              }
+              2 {
+                  Write-Host "Enter SamAccountName: " -NoNewline
+                  $Username = Read-Host
+                  while ($username -eq '') {
+                    Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
+                    Write-Host "EnterSamAccountName: " -NoNewline
+                    $Username = Read-host
+                  }
+                  Write-Host "Enter Password length [default is 12]: " -NoNewline
+                  [int]$Passwordlength = Read-Host
+                  if ($Passwordlength -lt 12) {
+                    Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
+                    Reset-AdPwd -Username $Username -MailTo Manager
+                  }
+                  else {
+                    Write-Host "Password Length is $PasswordLength"
+                    Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo Manager
+                  }
+                  Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                  Write-Host "`nPress any key to return to the previous menu"
+                  [void][System.Console]::ReadKey($true)
+                
+              }
+              3 {
+                  Write-Host "Enter Password length [default is 12]: " -NoNewline
+                  [int]$Passwordlength = Read-Host
+                  if ($Passwordlength -lt 12) {
+                    Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
+                    Reset-PwdMulti
+                  }
+                  else {
+                    Write-Host "Password Length is $PasswordLength"
+                    Reset-PwdMulti -PasswordLength $Passwordlength
+                  }
+                  Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
+                  Write-Host "`nPress any key to return to the previous menu"
+                  [void][System.Console]::ReadKey($true)           
+              }
+              4 { 
+                function show-query {
+                  Write-Host "Query user: " -NoNewline
+                  $username = Read-host
+                  Get-UserType -username $username -dc de-prod.dk -pr $true -HostQueryResult $true
+              }
+              
+              do
+              {
+                  show-query
+                  Write-Host "Press [" -NoNewline; Write-Host "ENTER" -NoNewline -ForegroundColor Cyan; Write-Host "] to search again or [" -NoNewline; Write-Host "Q" -NoNewline -ForegroundColor Cyan; Write-Host "] to exit: " -NoNewline
+                  $selection = Read-Host 
+                  switch ($selection) {
+                    'y'{
+                        show-query
+                      } 
+                  }
+                  
+              }
+              until ($selection -eq 'q')
+              }
+              5 {
+                Write-Host "Enter SamAccountName: " -NoNewline
+                $Username = Read-Host
+                while ($username -eq '') {
+                  Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
+                  Write-Host "EnterSamAccountName: " -NoNewline
+                  $Username = Read-host
+                }
+                Unlock-SD -UserName $Username
+                Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                $Username = $null
+                Write-Host "`nPress any key to return to the previous menu"
+                [void][System.Console]::ReadKey($true)
+              }
+          }
+      }
 } #end Show-SDPasswdResetMenu
 
 Show-SDPasswdResetMenu
