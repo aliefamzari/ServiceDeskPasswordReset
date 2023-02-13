@@ -1,5 +1,5 @@
 <# 
- Author Alif Amzari Mohd Azamee
+ Author Alif Amzari Mohd Azamee (It Support Consultant - Service Desk)
  Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail,Get-PDC'
@@ -193,7 +193,6 @@ Function Send-SDMail {
   $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.html -Raw
   $MailBodyUser = Get-Content $ScriptPath\MailBodyUser.html -Raw
   $From = $MailSender
-  # Write-Output "Sending mail" |Write-Log -Level Info 
   Switch ($SendPwdTo) {     
    Manager {
     $Subject = $MailSubjectManager -replace('FullName',$FullName) -replace('DomainName',$DomainName)
@@ -208,7 +207,6 @@ Function Send-SDMail {
     $Body = $MailBodySMS -replace('FullName',$FullName) -replace('Passwd',$Passwd)
    }  
   } 
-  # $SMTPServer = $SMTPServer
   try {
     Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
   }
@@ -479,12 +477,12 @@ Function Reset-AdPwd {
                     catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
                         $PasswordisReset = $false
                         Write-Host "AD service error" -ForegroundColor Red
-                        Write-log -Level Error "AD service error"
+                        Write-log -Level Error -data "AD service error"
                     }
                     catch [System.Management.Automation.PSArgumentException]{
                         $PasswordisReset = $false
                         Write-Host "Username exception" -ForegroundColor Red
-                        Write-Log -Level Error "Username exception"
+                        Write-Log -Level Error -Data "Username exception"
                     }
                     catch {
                         $PasswordisReset = $false
@@ -497,38 +495,45 @@ Function Reset-AdPwd {
             4 {
                 Write-Host "[$Username]Manager is Empty"
                 Write-Host "[$Username]Mobilephone is empty"
+                Write-Log -Level Error -Data "[$Username]Manager and mobilephone is empty"
                 $PasswordisReset = $false
             }
             5 {
                 Write-host "[$Username]Manager is Empty"
                 Write-Host "[$Username]Mobilephone is empty"
                 Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username] Account is Disabled"
                 $PasswordisReset = $false
             }
             6 {
                 write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
                 Write-Host "[$Username]Mobilephone is empty"
                 Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]Account is Disabled"
                 $PasswordisReset = $false
             }
             7 {
                 Write-Host "[$Username]Manager is Empty"
                 Write-Host "[$Username]Mobilephone is $Mobilephone"
                 Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]Account is Disabled"
                 $PasswordisReset = $false
             }
             8 {
                 write-host "[$Username]Manager is $ManagerFulLName. Email is $ManagerEmail"
                 Write-Host "[$Username]Mobilephone is $Mobilephone"
                 Write-Host "[$Username]Account is Disabled" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]Account is Disabled"
                 $PasswordisReset = $false
             }
             9 {
                 Write-Host "[$Username]Account is not exist" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]Account is not exist"
                 $PasswordisReset = $false
             }
             10 {
               Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
+              Write-Log -Level Error -Data "[$Username]ADM Account"
               $PasswordisReset = $false
             }
         }
@@ -810,17 +815,17 @@ Function Unlock-SD {
       catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
           $Unlocked = $false
           Write-Host "AD service error" -ForegroundColor Red
-          Write-log -Level Error "AD service error"
+          Write-log -Level Error -Data "AD service error"
       }
       catch [System.Management.Automation.PSArgumentException]{
           $Unlocked = $false
           Write-Host "Username exception" -ForegroundColor Red
-          Write-Log -Level Error "Username exception"
+          Write-Log -Level Error -Data "Username exception"
       }
       catch {
           $Unlocked = $false
           write-host "Exception error" -ForegroundColor Red
-          Write-Log -Level Error "Exception error"
+          Write-Log -Level Error -Data "Exception error"
       }
   }
 
@@ -845,17 +850,22 @@ Function Unlock-SD {
     False {
       if (!$AccountExist) {
         Write-Host "Account not exist" -ForegroundColor Yellow
+        Write-Log -Level Info -Data "[$username] Account not exist"
+
       }
       else{
         Write-Host "Account Disabled" -ForegroundColor Yellow
+        Write-Log -Level Info -Data "[$username] Account Disabled"
       }
     }
   }
   if ($unlocked) {
     write-host "Account unlocked"
+    Write-Log -Level Info -Data "[$username] Account unlocked"
   }
   else {
     write-host "Account not unlocked"
+    Write-Log -Level Info -Data "[$username] Account not unlocked"
   }
 }
 
@@ -876,11 +886,11 @@ Function Show-SDPasswdResetMenu {
           Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
           Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
           Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. [Send SMS and Callback]"
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user [Password send to SMS or SD perform a manual callback]"
           Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user. Password send to Manager"
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user [Password send to Manager]"
           Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user. Password send to manager. [Format CSV with line breaks delimiter]."
+          Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user [Password send to Manager. Accept text file with line break delimeter separating each username]"
           Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "4"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
           Write-Host -ForegroundColor $ItemTextColor " Query User Active-Directory Info"
           Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "5"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
