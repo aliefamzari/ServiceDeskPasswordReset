@@ -484,6 +484,7 @@ Function Reset-AdPwd {
                     catch [System.Management.Automation.PSArgumentException]{
                         $PasswordisReset = $false
                         Write-Host "Username exception" -ForegroundColor Red
+                        Write-Log -Level Error "Username exception"
                     }
                     catch {
                         $PasswordisReset = $false
@@ -814,10 +815,12 @@ Function Unlock-SD {
       catch [System.Management.Automation.PSArgumentException]{
           $Unlocked = $false
           Write-Host "Username exception" -ForegroundColor Red
+          Write-Log -Level Error "Username exception"
       }
       catch {
           $Unlocked = $false
-          write-host "catch"
+          write-host "Exception error" -ForegroundColor Red
+          Write-Log -Level Error "Exception error"
       }
   }
 
@@ -841,10 +844,10 @@ Function Unlock-SD {
     }
     False {
       if (!$AccountExist) {
-        Write-Host "Account not exist"
+        Write-Host "Account not exist" -ForegroundColor Yellow
       }
       else{
-        Write-Host "Account Disabled"
+        Write-Host "Account Disabled" -ForegroundColor Yellow
       }
     }
   }
@@ -915,12 +918,17 @@ Function Show-SDPasswdResetMenu {
                   {
                       Write-Host "Enter SamAccountName: " -NoNewline
                       $username = Read-host
+                      while ($username -eq '') {
+                        Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                        Write-Host "EnterSamAccountName: " -NoNewline
+                        $Username = Read-host
+                      }
                       Get-UserType -username $username -dc de-prod.dk -PR $true -HostQueryResult $true
                       write-host "Are you sure you want to reset this account password?" -ForegroundColor Yellow
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " to proceed  " -NoNewline
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " to re-enter username  " -NoNewline
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Q";Write-Host -NoNewline "]";write-host " quit to menu"
-                      $selection = Read-Host "Enter your selection" 
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " Yes " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " To re-enter username  " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Q";Write-Host -NoNewline "]";write-host " Quit to menu: " -NoNewline
+                      $selection = Read-Host #"Enter your selection" 
                         # [void][System.Console]::ReadKey($true)
                   
                       switch ($selection) {
@@ -949,12 +957,17 @@ Function Show-SDPasswdResetMenu {
                   {
                       Write-Host "Enter SamAccountName: " -NoNewline
                       $username = Read-host
+                      while ($username -eq '') {
+                        Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                        Write-Host "EnterSamAccountName: " -NoNewline
+                        $Username = Read-host
+                      }
                       Get-UserType -username $username -dc de-prod.dk -PR $true -HostQueryResult $true
                       write-host "Are you sure you want to reset this account password?" -ForegroundColor Yellow
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " to proceed  " -NoNewline
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " to re-enter username  " -NoNewline
-                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Q";Write-Host -NoNewline "]";write-host " quit to menu"
-                      $selection = Read-Host "Enter your selection" 
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " Yes " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " To re-enter username  " -NoNewline
+                      Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Q";Write-Host -NoNewline "]";write-host " Quit to menu: " -NoNewline
+                      $selection = Read-Host #"Enter your selection" 
                         # [void][System.Console]::ReadKey($true)
                   
                       switch ($selection) {
@@ -998,6 +1011,11 @@ Function Show-SDPasswdResetMenu {
                 function show-query {
                   Write-Host "Query user: " -NoNewline
                   $username = Read-host
+                  while ($username -eq '') {
+                    Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                    Write-Host "EnterSamAccountName: " -NoNewline
+                    $Username = Read-host
+                  }
                   Get-UserType -username $username -dc de-prod.dk -pr $true -HostQueryResult $true
               }
               
@@ -1019,13 +1037,13 @@ Function Show-SDPasswdResetMenu {
                 Write-Host "Enter SamAccountName: " -NoNewline
                 $Username = Read-Host
                 while ($username -eq '') {
-                  Write-Host "Username cannot be empty." -ForegroundColor $ItemWarningColor
+                  Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
                   Write-Host "EnterSamAccountName: " -NoNewline
                   $Username = Read-host
                 }
                 Unlock-SD -UserName $Username
                 Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
-                $Username = $null
+                # $Username = $null
                 Write-Host "`nPress any key to return to the previous menu"
                 [void][System.Console]::ReadKey($true)
               }
@@ -1034,4 +1052,3 @@ Function Show-SDPasswdResetMenu {
 } #end Show-SDPasswdResetMenu
 
 Show-SDPasswdResetMenu
-
