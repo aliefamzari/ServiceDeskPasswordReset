@@ -1043,7 +1043,6 @@ Function Show-SDPasswdResetMenu {
                 }
                 Unlock-SD -UserName $Username
                 Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
-                # $Username = $null
                 Write-Host "`nPress any key to return to the previous menu"
                 [void][System.Console]::ReadKey($true)
               }
