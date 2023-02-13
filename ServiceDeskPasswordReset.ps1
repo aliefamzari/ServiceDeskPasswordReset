@@ -290,7 +290,7 @@ Function Get-UserType {
     | 7         | n         | n            | y                | n              |
     | 8         | n         | y            | y                | n              |
     | 9         | n         | n            | n                | n              |
-    | 10        | na        | na           | na               | n              |
+    | 10 (ADM)  | n         | y            | na               | n              |
     +-----------+-----------+--------------+------------------+----------------+
    #>
    $type1 = ($Enabled -and $ManagerExist -and $MobilePhoneisExist -and $AccountExist) 
