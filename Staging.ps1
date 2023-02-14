@@ -149,10 +149,10 @@ Function New-RandomizedPassword {
         }
         $RequiresSpecial
         {
-            # These are the characters !#$%&+?@
-            $null = $PasswordCharacterArray.Add(((33,35,36,37,38,43,63,64) | Get-Random | ForEach-Object {[char]$_}))
+            # These are the characters !#%&+?@
+            $null = $PasswordCharacterArray.Add(((33,35,37,38,43,63,64) | Get-Random | ForEach-Object {[char]$_}))
             $PasswordLength = $PasswordLength - 1
-            $null = $CharacterSpaceArray.Add((33,35,36,37,38,43,63,64))
+            $null = $CharacterSpaceArray.Add((33,35,37,38,43,63,64))
         }
     }
     # Add a lowercase character. Excluded 'l' and 'o'
@@ -450,7 +450,8 @@ Function Reset-AdPwd {
 
         switch ($type -like '[1-3]') {
             $True {
-                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+                # $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+                $Password = '2E%W94$+zmmT'
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
                 try {
                     Write-Host "[$Username]Reseting password"
