@@ -723,7 +723,6 @@ Function Reset-AdPwd {
         "Execution time was {0}:{1}:{2}.{3}" -f $RunTime.Hours,  $RunTime.Minutes,  $RunTime.Seconds,  $RunTime.Milliseconds 
 } #end Reset-AdPwd
 
-
 function Reset-PwdMulti {
   [CmdletBinding()]
   param (
