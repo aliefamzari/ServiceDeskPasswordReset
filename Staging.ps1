@@ -3,6 +3,7 @@
  Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail,Get-PDC'
+ Contain functin from Powershell Gallery 'Get-Phonetic'
  Encoding = ANSI (Windows 1252)
 #>
 
@@ -167,6 +168,153 @@ Function New-RandomizedPassword {
 
     return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
+Function Get-Phonetic {
+  [CmdletBinding()]
+
+  Param
+  (
+      [Parameter(Mandatory = $true,ValueFromPipeLine = $true)]
+      [Char[]]$Char
+      
+  )
+  
+  Begin{
+      [HashTable]$PhoneticTable = @{
+          'a' = 'Alpha'
+          'b' = 'Bravo'
+          'c' = 'Charlie'
+          'd' = 'Delta'
+          'e' = 'Echo'
+          'f' = 'Foxtrot'
+          'g' = 'Golf'
+          'h' = 'Hotel'
+          'i' = 'India'
+          'j' = 'Juliett'
+          'k' = 'Kilo'
+          'l' = 'Lima'
+          'm' = 'Mike'
+          'n' = 'November'
+          'o' = 'Oscar'
+          'p' = 'Papa'
+          'q' = 'Quebec'
+          'r' = 'Romeo'
+          's' = 'Sierra'
+          't' = 'Tango'
+          'u' = 'Uniform'
+          'v' = 'Victor'
+          'w' = 'Whiskey'
+          'x' = 'X-ray'
+          'y' = 'Yankee'
+          'z' = 'Zulu'
+          '0' = 'Zero'
+          '1' = 'One'
+          '2' = 'Two'
+          '3' = 'Three'
+          '4' = 'Four'
+          '5' = 'Five'
+          '6' = 'Six'
+          '7' = 'Seven'
+          '8' = 'Eight'
+          '9' = 'Nine'
+          '.' = 'Period'
+          '!' = 'Exclamationmark'
+          '?' = 'Questionmark'
+          '@' = 'At'
+          '{' = 'Left-brace'
+          '}' = 'Right-brace'
+          '[' = 'Left-bracket'
+          ']' = 'Left-bracket'
+          '+' = 'Plus'
+          '>' = 'Greater-than'
+          '<' = 'Less-than'
+          '\' = 'Back-slash'
+          '/' = 'Forward-slash'
+          '|' = 'Pipe'
+          ':' = 'Colon'
+          ';' = 'Semi-colon'
+          '"' = 'Double-quote'
+          "'" = 'Single-quote'
+          '(' = 'Left-paranthesis'
+          ')' = 'Right-paranthesis'
+          '*' = 'Asterisk'
+          '-' = 'Hyphen'
+          '#' = 'Pound'
+          '^' = 'Caret'
+          '~' = 'Tilde'
+          '=' = 'Equals'
+          '&' = 'Ampersand'
+          '%' = 'Percent'
+          '$' = 'Dollar'
+          ',' = 'Comma'
+          '_' = 'Underscore'
+          '`' = 'Backtick'
+      }
+  }
+  
+  Process {
+      $Result = Foreach($Character in $Char) 
+      {
+          if($PhoneticTable.ContainsKey("$Character")) 
+          {
+              if([Char]::IsUpper([Char]$Character)) 
+              {
+                  [PSCustomObject]@{
+                      Char     = $Character
+                      Phonetic = "Capital-$($PhoneticTable["$Character"])"
+                  }
+              }
+              ElseIf([Char]::IsLower([Char]$Character)) 
+              {
+                  [PSCustomObject]@{
+                      Char     = $Character
+                      Phonetic = "Lowercase-$($PhoneticTable["$Character"])"
+                  }
+              }
+              ElseIf([Char]::IsNumber([Char]$Character))
+              {
+                  [PSCustomObject]@{
+                      Char     = $Character
+                      Phonetic = "Number-$($PhoneticTable["$Character"])"
+                  }
+              }
+              else 
+              {
+                  [PSCustomObject]@{
+                      Char     = $Character
+                      Phonetic = $PhoneticTable["$Character"]
+                  }
+              }
+          }
+          else 
+          {
+              [PSCustomObject]@{
+                  Char     = $Character
+                  Phonetic = $Character
+              }
+          }
+      }
+      
+      $InputText = -join $Char
+      
+      $TableFormat = $Result |
+      Format-Table -AutoSize |
+      Out-String
+      
+      $StringFormat = $Result.Phonetic -join ' '
+      
+      [hashtable]$Properties = @{
+          PhoneticForm = $StringFormat
+          Table        = $TableFormat
+          InputText    = $InputText
+      }
+      
+      $Object = New-Object -TypeName PSObject -Property $Properties
+      $Object.PSObject.Typenames.Insert(0,'ARTools.Phonetic')
+      $Object
+  }
+  
+  End{}
+}
 
 Function Send-SDMail {
   [CmdletBinding()]
@@ -271,12 +419,11 @@ Function Get-UserType {
       $ManagerEmail = $Manager.mail
       $ManagerFulLName = $Manager.givenname + " " + $Manager.Surname
       $ManagerExist = $true
-  }
+    }
   else {
       $ManagerExist = $false
   }
   }
-
   #EndRegion Check-Manager
 
   #Region User Type Matrix
@@ -392,7 +539,8 @@ Function Get-UserType {
     if (!$object.AccountExist){write-host "AccountExist: $($Object.AccountExist)" -ForegroundColor Red}
     Else {write-host "AccountExist: $($Object.AccountExist)"}
     write-host "PasswordDaysLeft: $($Object.PasswordDaysLeft)"
-    write-host "PasswordExpired: $($Object.PasswordExpired)"
+    if ($Object.PasswordExpired){write-host "PasswordExpired: $($Object.PasswordExpired)" -ForegroundColor Yellow}
+    else {Write-Host "PasswordExpired: $($Object.PasswordExpired)"}
     write-host "PasswordLastSet: $($Object.PasswordLastSet)"
     if ($object.lockedout){write-host "LockedOut: $($Object.lockedout)" -ForegroundColor Red}
     Else {write-host "LockedOut: $($Object.lockedout)"}
@@ -445,13 +593,11 @@ Function Reset-AdPwd {
         $ManagerEmail = $TUser.ManagerEmail
         Write-Host "[$Username]Account is Type $type"
         Write-log -Level Info -Data "[$Username]User is Type $type"
-
         #EndRegion Get-UserType
 
         switch ($type -like '[1-3]') {
             $True {
-                # $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-                $Password = '2E%W94$+zmmT'
+                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
                 try {
                     Write-Host "[$Username]Reseting password"
@@ -478,7 +624,7 @@ Function Reset-AdPwd {
                     catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
                         $PasswordisReset = $false
                         Write-Host "AD service error" -ForegroundColor Red
-                        Write-log -Level Error -data "AD service error"
+                        Write-log -Level Error -Data "AD service error"
                     }
                     catch [System.Management.Automation.PSArgumentException]{
                         $PasswordisReset = $false
@@ -587,6 +733,7 @@ Function Reset-AdPwd {
                 if ($DisplayPasswordOnScreen -eq '$true') {
                     Write-host "[$Username]Password is: "-NoNewline 
                     Write-host "$Password" -ForegroundColor Cyan
+                    ($Password | Get-Phonetic).Table
                 }
                 switch ($type) {
                     1 {
