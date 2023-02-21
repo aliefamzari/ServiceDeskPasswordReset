@@ -696,7 +696,7 @@ Function Reset-AdPwd {
                 Write-log -level Error -data "[$Username]Mail to Manager not sent"
             }
             else {
-                Write-host "[$Username]Mail sent to Manager $ManagerEmail"
+                Write-host "[$Username]Mail sent to Manager $ManagerEmail - $ManagerFulLName"
                 write-log -level Info -data "[$Username]Mail sent to Manager $ManagerEmail"
                 $ManagerEmail = $null
                 }
