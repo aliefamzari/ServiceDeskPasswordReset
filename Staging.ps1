@@ -3,7 +3,7 @@
  Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
  Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
  Contain forked function 'Send-SDMail,Get-PDC'
- Contain functin from Powershell Gallery 'Get-Phonetic'
+ Contain function from Powershell Gallery 'Get-Phonetic'
  Encoding = ANSI (Windows 1252)
 #>
 
@@ -1019,29 +1019,24 @@ Function Unlock-SD {
 Function Show-SDPasswdResetMenu {
       clear-host
       $pswho = $env:USERNAME
-      $TitleColor = "White"
-      $MenuTitleColor = "Cyan"
-      $ItemNumberColor = "Cyan"
-      $ItemTextColor = "White"
-      $ItemWarningColor = "Yellow"
       Write-Host "Enter your admin account for Active Directory. This will be use as the credentials to perform password reset." -ForegroundColor Cyan
       $AdmCredential = Get-AdmCred
 
       While ($Menu -ne 'q') {
           Clear-Host
-          Write-Host -ForegroundColor $TitleColor "`n`t`t $OrgName Service Desk Password Reset Tool`n"
-          Write-Host -ForegroundColor $ItemTextColor "Welcome $pswho"
-          Write-Host -ForegroundColor $MenuTitleColor "`n[Main Menu]" 
-          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "1"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user [Password send to SMS or SD perform a manual callback]"
-          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "2"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for a user [Password send to Manager]"
-          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "3"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Reset password for multiple user [Password send to Manager. Accept text file with line break delimeter separating each username]"
-          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "4"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Query User Active-Directory Info"
-          Write-Host -ForegroundColor $ItemTextColor -NoNewline "`n["; Write-Host -ForegroundColor $ItemNumberColor -NoNewline "5"; Write-Host -ForegroundColor $ItemTextColor -NoNewline "]"; `
-          Write-Host -ForegroundColor $ItemTextColor " Unlock user account"
+          Write-Host -ForegroundColor White "`n`t`t $OrgName Service Desk Password Reset Tool`n"
+          Write-Host -ForegroundColor White "Welcome $pswho"
+          Write-Host -ForegroundColor Cyan "`n[Main Menu]" 
+          Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "1"; Write-Host -ForegroundColor White -NoNewline "]"; `
+          Write-Host -ForegroundColor White " Reset password for a user [Password send to SMS or SD perform a manual callback]"
+          Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "2"; Write-Host -ForegroundColor White -NoNewline "]"; `
+          Write-Host -ForegroundColor White " Reset password for a user [Password send to Manager]"
+          Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "3"; Write-Host -ForegroundColor White -NoNewline "]"; `
+          Write-Host -ForegroundColor White " Reset password for multiple user [Password send to Manager. Accept text file with line break delimeter separating each username]"
+          Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "4"; Write-Host -ForegroundColor White -NoNewline "]"; `
+          Write-Host -ForegroundColor White " Query User Active-Directory Info"
+          Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "5"; Write-Host -ForegroundColor White -NoNewline "]"; `
+          Write-Host -ForegroundColor White " Unlock user account"
 
           Write-Host
           # Write-Host "Current Settings config.json"
@@ -1076,7 +1071,7 @@ Function Show-SDPasswdResetMenu {
                       Write-Host "Enter SamAccountName: " -NoNewline
                       $username = Read-host
                       while ($username -eq '') {
-                        Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                        Write-Host "[Username cannot be empty]" -ForegroundColor Yellow
                         Write-Host "EnterSamAccountName: " -NoNewline
                         $Username = Read-host
                       }
@@ -1100,7 +1095,7 @@ Function Show-SDPasswdResetMenu {
                               Write-Host "Password Length is $PasswordLength"
                               Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
                               }
-                              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                              Write-Host -ForegroundColor Cyan "`nDONE!"
                               Write-Host "`nPress any key to return to the previous menu"
                               [void][System.Console]::ReadKey($true)
                               $selection = 'q'
@@ -1115,7 +1110,7 @@ Function Show-SDPasswdResetMenu {
                       Write-Host "Enter SamAccountName: " -NoNewline
                       $username = Read-host
                       while ($username -eq '') {
-                        Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                        Write-Host "[Username cannot be empty]" -ForegroundColor Yellow
                         Write-Host "EnterSamAccountName: " -NoNewline
                         $Username = Read-host
                       }
@@ -1139,7 +1134,7 @@ Function Show-SDPasswdResetMenu {
                               Write-Host "Password Length is $PasswordLength"
                               Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo Manager
                               }
-                              Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                              Write-Host -ForegroundColor Cyan "`nDONE!"
                               Write-Host "`nPress any key to return to the previous menu"
                               [void][System.Console]::ReadKey($true)
                               $selection = 'q'
@@ -1160,7 +1155,7 @@ Function Show-SDPasswdResetMenu {
                     Write-Host "Password Length is $PasswordLength"
                     Reset-PwdMulti -PasswordLength $Passwordlength
                   }
-                  Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"  
+                  Write-Host -ForegroundColor Cyan "`nDONE!"  
                   Write-Host "`nPress any key to return to the previous menu"
                   [void][System.Console]::ReadKey($true)           
               }
@@ -1169,7 +1164,7 @@ Function Show-SDPasswdResetMenu {
                   Write-Host "Query user: " -NoNewline
                   $username = Read-host
                   while ($username -eq '') {
-                    Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                    Write-Host "[Username cannot be empty]" -ForegroundColor Yellow
                     Write-Host "EnterSamAccountName: " -NoNewline
                     $Username = Read-host
                   }
@@ -1194,12 +1189,12 @@ Function Show-SDPasswdResetMenu {
                 Write-Host "Enter SamAccountName: " -NoNewline
                 $Username = Read-Host
                 while ($username -eq '') {
-                  Write-Host "[Username cannot be empty]" -ForegroundColor $ItemWarningColor
+                  Write-Host "[Username cannot be empty]" -ForegroundColor Yellow
                   Write-Host "EnterSamAccountName: " -NoNewline
                   $Username = Read-host
                 }
                 Unlock-SD -UserName $Username
-                Write-Host -ForegroundColor $ItemNumberColor "`nDONE!"
+                Write-Host -ForegroundColor Cyan "`nDONE!"
                 Write-Host "`nPress any key to return to the previous menu"
                 [void][System.Console]::ReadKey($true)
               }
