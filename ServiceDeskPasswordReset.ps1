@@ -111,6 +111,7 @@ Function Get-PDC {
       Return $PDC
     }
 } #end Get-PDC
+$DC = Get-PDC -DomainName $DomainName
 
 Function New-RandomizedPassword {
     [CmdletBinding()]
@@ -168,6 +169,7 @@ Function New-RandomizedPassword {
 
     return -join ($PasswordCharacterArray | Get-Random -Count $PasswordCharacterArray.Count)
 } #end New-RandomizedPassword
+
 Function Get-Phonetic {
   [CmdletBinding()]
 
@@ -576,7 +578,6 @@ Function Reset-AdPwd {
 
         $StartTime = get-date #Start stopwatch
         Write-Host "Retrieving PDC for $DomainName"
-        $DC = Get-PDC -DomainName $DomainName
         Write-Host "Using $($DC.HostName) as DC for the $DomainName domain"
         Write-host "Querying $Username in Active-Directory"
 
@@ -1075,7 +1076,7 @@ Function Show-SDPasswdResetMenu {
                   Write-Host "EnterSamAccountName: " -NoNewline
                   $Username = Read-host
                 }
-                Get-UserType -username $username -dc de-prod.dk -PR $true -HostQueryResult $true
+                Get-UserType -username $username -dc $DC -PR $true -HostQueryResult $true
                 write-host "Are you sure you want to reset this account password?" -ForegroundColor Yellow
                 Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " Yes " -NoNewline
                 Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " To re-enter username  " -NoNewline
@@ -1114,7 +1115,7 @@ Function Show-SDPasswdResetMenu {
                   Write-Host "EnterSamAccountName: " -NoNewline
                   $Username = Read-host
                 }
-                Get-UserType -username $username -dc de-prod.dk -PR $true -HostQueryResult $true
+                Get-UserType -username $username -dc $DC -PR $true -HostQueryResult $true
                 write-host "Are you sure you want to reset this account password?" -ForegroundColor Yellow
                 Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Y";Write-Host -NoNewline "]";write-host " Yes " -NoNewline
                 Write-Host -NoNewline "["; Write-Host -ForegroundColor Cyan -NoNewline "Enter";Write-Host -NoNewline "]";write-host " To re-enter username  " -NoNewline
@@ -1168,7 +1169,7 @@ Function Show-SDPasswdResetMenu {
               Write-Host "EnterSamAccountName: " -NoNewline
               $Username = Read-host
             }
-            Get-UserType -username $username -dc de-prod.dk -pr $true -HostQueryResult $true
+            Get-UserType -username $username -dc $DC -pr $true -HostQueryResult $true
         }
         
         do
