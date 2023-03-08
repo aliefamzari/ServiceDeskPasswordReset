@@ -529,14 +529,14 @@ Function Get-UserType {
     write-host "isADM: $($Object.isadm)"
     if (!$object.isEnabled){write-host "isEnabled: $($Object.isEnabled)" -ForegroundColor Red}
     Else {write-host "isEnabled: $($Object.isEnabled)"}
-    write-host "Sam: $($Object.Sam)"
+    write-host "Sam: $($Object.Sam)" -ForegroundColor Cyan
     write-host "FullName: $($Object.FullName)"
     write-host "Mail: $($Object.Mail)"
     write-host "UserPrincipalName: $($Object.UserPrincipalName)"
     write-host "MobilePhone: $($Object.MobilePhone)"
-    write-host "ManagerSAM: $($ManagerCN)"
+    write-host "ManagerSAM: $($ManagerCN)" -ForegroundColor Cyan
     write-host "ManagerEmail: $($Object.ManagerEmail)"
-    write-host "ManagerFullName: $($Object.ManagerFullName)"
+    write-host "ManagerFullName: $($Object.ManagerFullName)" -ForegroundColor Cyan
     write-host "PasswordisReset: $($Object.PasswordisReset)"
     if (!$object.AccountExist){write-host "AccountExist: $($Object.AccountExist)" -ForegroundColor Red}
     Else {write-host "AccountExist: $($Object.AccountExist)"}
@@ -549,8 +549,8 @@ Function Get-UserType {
     write-host "Country: $($Object.country)"
     write-host "EmployeeNumber: $($Object.employeenumber)"
     write-host "Title: $($Object.Title)"
-    write-host "Office: $($Object.Office)"
-    write-host "Department: $($Object.Department)"
+    write-host "Office: $($Object.Office)" -ForegroundColor Cyan
+    write-host "Department: $($Object.Department)" -ForegroundColor Cyan
     Write-Host
   }
   if ($HostQueryResult){
@@ -680,9 +680,9 @@ Function Reset-AdPwd {
                 $PasswordisReset = $false
             }
             10 {
-              Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
-              Write-Log -Level Error -Data "[$Username]ADM Account"
-              $PasswordisReset = $false
+                Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]ADM Account"
+                $PasswordisReset = $false
             }
         }
           #Region Send Function

@@ -680,9 +680,9 @@ Function Reset-AdPwd {
                 $PasswordisReset = $false
             }
             10 {
-              Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
-              Write-Log -Level Error -Data "[$Username]ADM Account"
-              $PasswordisReset = $false
+                Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
+                Write-Log -Level Error -Data "[$Username]ADM Account"
+                $PasswordisReset = $false
             }
         }
           #Region Send Function
