@@ -598,8 +598,9 @@ Function Reset-AdPwd {
 
         switch ($type -like '[1-3]') {
             $True {
-                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-                $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
+                # $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+                # $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
+                  $Password = "7bQ@j?Xb#TzJ"
                 try {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
@@ -718,7 +719,6 @@ Function Reset-AdPwd {
                 if ($PasswordisReset -eq $true) {
                 # $To = $ADUserEmail
                 $To = 'almaz@orsted.com'
-                # $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
                 Send-SDMail -to $To -FullName $FullName -SendPwdTo User
                 Write-Host  "[$Username]Notification mail sent to $To"

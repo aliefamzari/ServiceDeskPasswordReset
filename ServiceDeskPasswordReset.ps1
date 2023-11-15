@@ -718,7 +718,6 @@ Function Reset-AdPwd {
                 if ($PasswordisReset -eq $true) {
                 $To = $ADUserEmail
                 # $To = 'almaz@orsted.com'
-                # $FullName = $ADUser.GivenName + " " + $ADUser.surname
                 Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
                 Send-SDMail -to $To -FullName $FullName -SendPwdTo User
                 Write-Host  "[$Username]Notification mail sent to $To"
