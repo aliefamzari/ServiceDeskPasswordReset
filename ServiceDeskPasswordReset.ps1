@@ -1,10 +1,10 @@
-<# 
+﻿<# 
   Author Alif Amzari Mohd Azamee (It Support Consultant - Service Desk)
   Azure DevOps Project URL: https://dev.azure.com/ALMAZ0773/ServiceDesk%20Password%20Reset
   Contain forked function 'New-RandomizedPassword' courtesy from William Ogle. Function has been modified to exclude certain ambiguous (difficult to read) character such as O,0,o,l,I,1. 
   Contain forked function 'Send-SDMail,Get-PDC'
   Contain function from Powershell Gallery 'Get-Phonetic'
-  Encoding = ANSI (Windows 1252)
+  Encoding = utfbom
 #>
 
 #Region GlobalVariable Read from config.json
@@ -32,8 +32,8 @@ Catch {
 
 Function Get-AdmCred {
 
-  $AdmUsername = read-host "Enter your ADM username (admxxxxx)" -
-  $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString -
+  $AdmUsername = read-host "Enter your ADM username (admxxxxx)" 
+  $AdmPassword =  read-host  "Enter your ADM password" -AsSecureString 
   $AdmCredential = New-Object System.Management.Automation.PSCredential -ArgumentList $AdmUsername, $AdmPassword -ErrorAction SilentlyContinue
   $AdmCredential
 } #end Get-AdmCred 
