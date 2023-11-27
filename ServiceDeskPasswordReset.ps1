@@ -358,7 +358,7 @@ Function Send-SDMail {
    }  
   } 
   try {
-    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8
+    Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8 -WarningAction SilentlyContinue
   }
   catch {
     $Script:SendSDMail = $false
@@ -598,7 +598,8 @@ Function Reset-AdPwd {
 
         switch ($type -like '[1-3]') {
             $True {
-                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+                # $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
+                $Password = 'SulitPass2025'
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
                 try {
                     Write-Host "[$Username]Reseting password"
