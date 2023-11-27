@@ -317,7 +317,107 @@ Function Get-Phonetic {
   
   End{}
 }
+#Region Alternative Funcion if Send-MailMessage is obsolete
+# function SendMail {
+#   [CmdletBinding(
+#       PositionalBinding=$false,
+#       SupportsShouldProcess=$true,
+#       ConfirmImpact='Medium'
+#   )]
+#   param(
+#       [Parameter(Mandatory=$true)]
+#       [MailAddress]$From,
 
+#       [Parameter(Mandatory=$false)]
+#       [ValidateNotNullOrEmpty()]
+#       [string]$FromDisplayName,
+
+#       [Parameter(Mandatory=$false)]
+#       [MailAddress[]]$To,
+
+#       [Parameter(Mandatory=$false)]
+#       [MailAddress[]]$Cc,
+
+#       [Parameter(Mandatory=$false)]
+#       [MailAddress[]]$Bcc,
+
+#       [Parameter(Mandatory=$true)]
+#       [string]$Subject,
+
+#       [Parameter(Mandatory=$true)]
+#       [string]$Body,
+  
+#       [Parameter(Mandatory=$false)]
+#       [ValidateNotNullOrEmpty()]
+#       [string[]]$Attachments,
+
+#       [Parameter(Mandatory=$true)]
+#       [string]$MailServer,
+
+#       [Parameter(Mandatory=$false)]
+#       [int]$Port = 25,
+
+#       [Parameter(Mandatory=$false)]
+#       [bool]$UseSsl = $true
+#    )
+
+#   if (($PSBoundParameters.ContainsKey('To') -eq $false) -and ($PSBoundParameters.ContainsKey('Cc') -eq $false) -and ($PSBoundParameters.ContainsKey('Bcc') -eq $false)) {
+#       throw '$To, $Cc, $Bcc are all empty, aborting'
+#   }
+
+#   # mail object
+#   $Mail = New-Object System.Net.Mail.MailMessage
+
+#   if ($FromDisplayName) {
+#       $Mail.From = New-Object System.Net.Mail.MailAddress $From, $FromDisplayName
+#   } else {
+#       $Mail.From = $From
+#   }
+
+#   # used in a friendly logfile message that shows all recipients
+#   $RecipientString = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+#   foreach ($_ in $To) {
+#       $Mail.To.Add($_)
+#       $RecipientString.Add($_.Address + '(To)')
+#   }
+
+#   foreach ($_ in $Cc) {
+#       $Mail.CC.Add($_)
+#       $RecipientString.Add($_.Address + '(Cc)')
+#   }
+
+#   foreach ($_ in $Bcc) {
+#       $Mail.Bcc.Add($_)
+#       $RecipientString.Add($_.Address + '(Bcc)')
+#   }
+
+#   $Mail.Subject = $Subject
+#   $Mail.IsBodyHtml = $true
+#   $Mail.Body = $Body
+
+#   foreach ($_ in $Attachments) {
+#       $Mail.Attachments.Add($_)
+#   }
+
+#   # mail server object
+#   $Smtp = New-Object Net.Mail.SmtpClient
+#   $Smtp.Host = $MailServer
+#   $Smtp.Port = $Port
+
+#   if ($UseSsl -eq $true) {
+#       $Smtp.EnableSsl = $true
+#   }
+
+#   # friendly logfile message that shows all recipients
+#    $ConfirmationString = "Sending mail $($Mail.Subject | Join-String -DoubleQuote) to $($RecipientString | Join-String -Separator ',') with $($Mail.Attachments.Count) attachment(s) $($Mail.Attachments.Name | Join-String -DoubleQuote -Separator ',')"
+#   if ($PSCmdlet.ShouldProcess($ConfirmationString, $To, 'Send')) {
+#       $Smtp.Send($Mail)
+#   }
+#   $Mail.Dispose()
+#   $Smtp.Dispose()
+# }
+#EndRegion
 Function Send-SDMail {
   [CmdletBinding()]
   param (

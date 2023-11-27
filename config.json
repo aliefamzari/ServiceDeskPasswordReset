@@ -1,12 +1,12 @@
-{
+ï»¿{
     "SMTPServer": "gwsmtp-07.de-prod.dk",
     "DomainName": "de-prod.dk",
     "ScriptPath": "split-path -parent $MyInvocation.MyCommand.Definition",
     "LogPath": "$logpath",
     "PasswordLength": "12",
-    "MailSender": "Ørsted SD AAC <SD_Assistance@orsted.com>",
+    "MailSender": "Ã˜rsted SD AAC <SD_Assistance@orsted.com>",
     "ChangePasswordAtLogon": "$true",
-    "OrgName": "Ørsted",
+    "OrgName": "Ã˜rsted",
     "SMSaddress": "@sms.orsted.com",
     "DisplayPasswordOnScreen": "$true"
 }
