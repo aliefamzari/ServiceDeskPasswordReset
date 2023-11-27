@@ -598,8 +598,7 @@ Function Reset-AdPwd {
 
         switch ($type -like '[1-3]') {
             $True {
-                # $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
-                $Password = 'SulitPass2025'
+                $Password = New-RandomizedPassword -PasswordLength $PasswordLength -RequiresUppercase $true -RequiresNumerical $true -RequiresSpecial $true
                 $SecPass = ConvertTo-SecureString $Password -AsPlainText -Force
                 try {
                     Write-Host "[$Username]Reseting password"
