@@ -9,16 +9,54 @@
 
 #Region GlobalVariable Read from config.json
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
-$Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
-$LogPath = "$env:USERPROFILE\ServiceDeskPasswordReset.log"
-$MailSender = $Config.MailSender
-$SMTPServer = $Config.SmtpServer
-$DomainName = $Config.DomainName
-$ChangePasswordAtLogon = $Config.ChangePasswordAtLogon
-$OrgName = $Config.OrgName
-$SMSAddress = $Config.SMSAddress
-$DisplayPasswordOnScreen = $Config.DisplayPasswordOnScreen
+if (!$options) {
+  $Config = (Get-Content -Path $ScriptPath\config.json) |ConvertFrom-Json
+  $LogPath = "$env:USERPROFILE\ServiceDeskPasswordReset.log"
+  $MailSender = $Config.MailSender
+  $SMTPServer = $Config.SmtpServer
+  $DomainName = $Config.DomainName
+  $ChangePasswordAtLogon = $Config.ChangePasswordAtLogon
+  $OrgName = $Config.OrgName
+  $SMSAddress = $Config.SMSAddress
+  $DisplayPasswordOnScreen = $Config.DisplayPasswordOnScreen
+}
+
 #Endregion GlobalVariable
+
+function Get-Config {
+  param(
+    [string]$Config,
+    [string]$LogPath,
+    [string]$MailSender,
+    [string]$SMTPServer,
+    [string]$DomainName,
+    [string]$ChangePasswordAtLogon,
+    [string]$OrgName,
+    [string]$SMSAddress,
+    [string]$DisplayPasswordOnScreen
+  )
+  if ($options) {
+    $LogPath = Read-Host "LogPath"
+    $MailSender = Read-Host "MailSender"
+  }
+
+}
+
+function Get-FileViaDialog {
+  Add-Type -AssemblyName System.Windows.Forms
+
+  $openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+  $openFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+
+  $dialogResult = $openFileDialog.ShowDialog()
+
+  if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
+      return $openFileDialog.FileName
+  } else {
+      Write-Host "File selection canceled."
+      return $null
+  }
+}
 
 #Region Import Active-Directory Module
 Try {
