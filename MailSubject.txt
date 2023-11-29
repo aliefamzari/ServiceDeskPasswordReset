@@ -1,6 +1,8 @@
-#Manager#
+﻿#Manager#
 Temporary DomainName password for FullName
 #SMS#
 Temporary DomainName password for FullName
 #User#
-Your password for DomainName  has been reset
+Your password for DomainName has been reset
+#SecBreach#
+Your password for DomainName has been reset

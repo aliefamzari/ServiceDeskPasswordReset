@@ -23,6 +23,59 @@ if (!$options) {
 
 #Endregion GlobalVariable
 
+function Set-Config {
+  param (
+      [string]$Parameter
+  )
+
+  switch ($Parameter) {
+      "OrgName" {
+          $global:config[$Parameter] = Read-Host "Enter Organization Name"
+      }
+      "DomainName" {
+          $global:config[$Parameter] = Read-Host Read-Host "Enter Domain Name"
+      }
+      "SMTPServer" {
+          $global:config[$Parameter] = Read-Host "Enter SMTP Server"
+      }
+      "SMSAddress" {
+          $global:config[$Parameter] = Read-Host "Enter SMS Address"
+      }
+      "MailSender" {
+          $global:config[$Parameter] = Read-Host "Enter Mail Sender"
+      }
+      "LogPath" {
+          $global:config[$Parameter] = Read-Host "Enter Log Path"
+      }
+      "PasswordLength" {
+          do {
+              $value = Read-Host "Enter Password Length (must be a number between 10 and 65)"
+            
+              if ($value -match '^\d+$' -and [int]$value -ge 10 -and [int]$value -le 65) {
+                  break
+              } else {
+                  Write-Host "Invalid input. Please enter a valid number between 10 and 65."
+              }
+            } while ($true)
+          $global:config[$Parameter] = [int]$value
+      }
+      "ChangePasswordAtLogon" {
+          do {
+              $value = Read-Host "Enter $Parameter (Yes/No)"
+          } while ($value -notin @('Yes', 'No'))
+          $global:config[$Parameter] = $value
+      }
+      "DisplayPasswordOnScreen" {
+          do {
+              $value = Read-Host "Enter $Parameter (Yes/No)"
+          } while ($value -notin @('Yes', 'No'))
+          $global:config[$Parameter] = ($value -eq 'Yes')
+      }
+      default {
+          Write-Host "Invalid parameter: $Parameter"
+      }
+  }
+}
 function Get-Config {
   param(
     [string]$Config,
@@ -468,7 +521,7 @@ Function Send-SDMail {
     [String]
     $ManagerFullName,
     [Parameter(Mandatory)]
-    [ValidateSet("Manager","User","SMS")]
+    [ValidateSet("Manager","User","SMS","SecBreach")]
     $SendPwdTo,
     [String]
     $Passwd
@@ -477,9 +530,11 @@ Function Send-SDMail {
   $MailSubjectManager = $MailSubject[1]
   $MailSubjectSmS = $MailSubject[3]
   $MailSubjectUser = $MailSubject[5]
+  $MailSubjectSecBreach = $MailSubject[7]
   $MailBody = Get-Content $ScriptPath\MailBody.html -Raw
   $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.html -Raw
   $MailBodyUser = Get-Content $ScriptPath\MailBodyUser.html -Raw
+  $MailBodySecBreach = Get-Content $ScriptPath\$MailBodySecBreach.html -Raw
   $From = $MailSender
   Switch ($SendPwdTo) {     
    Manager {
@@ -493,7 +548,11 @@ Function Send-SDMail {
    SMS {
     $Subject = $MailSubjectSmS -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = $MailBodySMS -replace('FullName',$FullName) -replace('Passwd',$Passwd)
-   }  
+   }
+   SecBreach {
+    $Subject = $MailSubjectSecBreach -replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Body = $MailBodySecBreach -replace('FullName',$FullName)
+   } 
   } 
   try {
     Send-MailMessage -To $To -From $From -Subject $Subject -Body $Body -BodyAsHtml -SmtpServer $SMTPServer -Encoding UTF8 -WarningAction SilentlyContinue
@@ -708,7 +767,7 @@ Function Reset-AdPwd {
         $UserName,
         [String]
         [Parameter()]
-        [ValidateSet("Manager","SMS","User","ManagerSMSUser","Bulk")]
+        [ValidateSet("Manager","SMS","User","ManagerSMSUser","Bulk","SecBreach")]
         $MailTo,
         [Parameter(Mandatory=$false)]
         [Int]$PasswordLength = 12
@@ -862,6 +921,12 @@ Function Reset-AdPwd {
                 Write-Log -Level Info -Data "[$Username]Notification mail sent to $to"
                 }
           } #End SendUsr
+          function SecBreach {
+                Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
+                Send-SDMail -To $ADUserEmail -FullName $FullName -SendPwdTo SecBreach 
+                Write-Host  "[$Username]Notification mail sent to $To"
+                Write-Log -Level Info -Data "[$Username]Notification mail sent to $to"
+          }
           #EndRegion Send Function
 
         switch ($PasswordisReset) {
@@ -898,6 +963,9 @@ Function Reset-AdPwd {
                         Bulk {
                           $MailTo = 'Manager'
                         }
+                        SecBreach {
+                          $MailTo = 'SecBreach'
+                        }
                   
                         
                       }
@@ -929,6 +997,9 @@ Function Reset-AdPwd {
                             Bulk {
                                 $MailTo = 'manager'
                                 }
+                            Sec {
+                              $MailTo = 'SecBreach'
+                              }
                         }
                     }
                     3 { 
@@ -957,6 +1028,12 @@ Function Reset-AdPwd {
                           SendUsr
                         }
                         Bulk {
+                          Write-Host "[$Username]Password reset. But not send" -ForegroundColor Yellow
+                          write-log -Level Warning -data "[$Username]Password reset. But not send"
+                          Write-Host "[$Username]Manager is empty" -ForegroundColor Yellow
+                          write-log -Level Warning -Data "[$Username]Manager is empty" 
+                        }
+                        SecBreach {
                           Write-Host "[$Username]Password reset. But not send" -ForegroundColor Yellow
                           write-log -Level Warning -data "[$Username]Password reset. But not send"
                           Write-Host "[$Username]Manager is empty" -ForegroundColor Yellow
@@ -995,13 +1072,16 @@ Function Reset-AdPwd {
                     SendSMS
                     SendUsr
                     }
-
             }
             Bulk { if ($PasswordisReset) {
                     SendMgr
                     }
 
             }
+            SecBreach { if ($PasswordisReset) {
+              SendMgr
+              }
+      }
         }
 
         $RunTime = New-TimeSpan -Start $StartTime -End (get-date)  #End Stop Watch
@@ -1172,8 +1252,10 @@ Function Show-SDPasswdResetMenu {
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "3"; Write-Host -ForegroundColor White -NoNewline "]"; `
     Write-Host -ForegroundColor White " Reset password for multiple user [Password send to Manager. Accept text file with line break delimeter separating each username]"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "4"; Write-Host -ForegroundColor White -NoNewline "]"; `
-    Write-Host -ForegroundColor White " Query User Active-Directory Info"
+    Write-Host -ForegroundColor White " Reset password for multiple user [Security Breach Incident]"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "5"; Write-Host -ForegroundColor White -NoNewline "]"; `
+    Write-Host -ForegroundColor White " Query User Active-Directory Info"
+    Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "6"; Write-Host -ForegroundColor White -NoNewline "]"; `
     Write-Host -ForegroundColor White " Unlock user account"
     
       Write-Host
@@ -1297,7 +1379,22 @@ Function Show-SDPasswdResetMenu {
             Write-Host "`nPress any key to return to the previous menu"
             [void][System.Console]::ReadKey($true)           
         }
-        4 { 
+        4 {
+          Write-Host "Enter Password length [default is 12]: " -NoNewline
+          [int]$Passwordlength = Read-Host
+          if ($Passwordlength -lt 12) {
+            Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
+            Reset-PwdMulti
+          }
+          else {
+            Write-Host "Password Length is $PasswordLength"
+            Reset-PwdMulti -PasswordLength $Passwordlength
+          }
+          Write-Host -ForegroundColor Cyan "`nDONE!"  
+          Write-Host "`nPress any key to return to the previous menu"
+          [void][System.Console]::ReadKey($true)           
+      }
+        5 { 
           function show-query {
             Write-Host "Query user: " -NoNewline
             $username = Read-host
@@ -1307,23 +1404,22 @@ Function Show-SDPasswdResetMenu {
               $Username = Read-host
             }
             Get-UserType -username $username -dc $DC -pr $true -HostQueryResult $true
+          }
+          do
+          {
+              show-query
+              Write-Host "Press [" -NoNewline; Write-Host "ENTER" -NoNewline -ForegroundColor Cyan; Write-Host "] to search again or [" -NoNewline; Write-Host "Q" -NoNewline -ForegroundColor Cyan; Write-Host "] to exit: " -NoNewline
+              $selection = Read-Host 
+              switch ($selection) {
+                'y'{
+                    show-query
+                  } 
+              }
+              
+          }
+          until ($selection -eq 'q')
         }
-        
-        do
-        {
-            show-query
-            Write-Host "Press [" -NoNewline; Write-Host "ENTER" -NoNewline -ForegroundColor Cyan; Write-Host "] to search again or [" -NoNewline; Write-Host "Q" -NoNewline -ForegroundColor Cyan; Write-Host "] to exit: " -NoNewline
-            $selection = Read-Host 
-            switch ($selection) {
-              'y'{
-                  show-query
-                } 
-            }
-            
-        }
-        until ($selection -eq 'q')
-        }
-        5 {
+        6 {
           Write-Host "Enter SamAccountName: " -NoNewline
           $Username = Read-Host
           while ($username -eq '') {

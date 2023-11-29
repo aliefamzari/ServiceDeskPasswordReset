@@ -1,7 +1,6 @@
 ﻿{
     "SMTPServer": "gwsmtp-07.de-prod.dk",
     "DomainName": "de-prod.dk",
-    "ScriptPath": "split-path -parent $MyInvocation.MyCommand.Definition",
     "LogPath": "$logpath",
     "PasswordLength": "12",
     "MailSender": "Ørsted SD AAC <SD_Assistance@orsted.com>",
