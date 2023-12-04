@@ -27,7 +27,7 @@ function Set-Config {
   param (
       [string]$Parameter
   )
-
+  $global:config = @{}  
   switch ($Parameter) {
       "OrgName" {
           $global:config[$Parameter] = Read-Host "Enter Organization Name"
