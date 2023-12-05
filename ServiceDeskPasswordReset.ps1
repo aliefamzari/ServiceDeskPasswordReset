@@ -520,7 +520,7 @@ Function Send-SDMail {
     [String]
     $ManagerFullName,
     [Parameter(Mandatory)]
-    [ValidateSet("Manager","User","SMS","SecBreach")]
+    [ValidateSet("Manager","User","SMS","SecBreach","Custom")]
     $SendPwdTo,
     [String]
     $Passwd
@@ -530,10 +530,12 @@ Function Send-SDMail {
   $MailSubjectSmS = $MailSubject[3]
   $MailSubjectUser = $MailSubject[5]
   $MailSubjectSecBreach = $MailSubject[7]
+  $MailSubjectCustom = $MailSubject[9]
   $MailBody = Get-Content $ScriptPath\MailBody.html -Raw
   $MailBodySMS = Get-Content $ScriptPath\MailBodySMS.html -Raw
   $MailBodyUser = Get-Content $ScriptPath\MailBodyUser.html -Raw
-  $MailBodySecBreach = Get-Content $ScriptPath\$MailBodySecBreach.html -Raw
+  $MailBodySecBreach = Get-Content $ScriptPath\MailBodySecBreach.html -Raw
+  $MailBodyCustom = Get-Content $ScriptPath\MailBodyCustom.html -Raw
   $From = $MailSender
   Switch ($SendPwdTo) {     
    Manager {
@@ -551,6 +553,10 @@ Function Send-SDMail {
    SecBreach {
     $Subject = $MailSubjectSecBreach -replace('FullName',$FullName) -replace('DomainName',$DomainName)
     $Body = $MailBodySecBreach -replace('FullName',$FullName)
+   }
+   Custom {
+    $Subject = $MailSubjectCustom-replace('FullName',$FullName) -replace('DomainName',$DomainName)
+    $Body = $MailBodyCustom -replace('FullName',$FullName) -replace('DomainName',$DomainName) 
    } 
   } 
   try {
@@ -766,7 +772,7 @@ Function Reset-AdPwd {
         $UserName,
         [String]
         [Parameter()]
-        [ValidateSet("Manager","SMS","User","ManagerSMSUser","Bulk","SecBreach")]
+        [ValidateSet("Manager","SMS","User","ManagerSMSUser","Bulk","SecBreach","Custom")]
         $MailTo,
         [Parameter(Mandatory=$false)]
         [Int]$PasswordLength = 12
@@ -799,14 +805,13 @@ Function Reset-AdPwd {
                 try {
                     Write-Host "[$Username]Reseting password"
                     $PasswordisReset = $true
-                    Set-ADAccountPassword -Identity $UserName -Server $DC -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
-                    if ($ChangePasswordAtLogon -eq '$true') {
-                    Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    else {
-                    Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
-                    }
-                    # Unlock-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
+                    # Set-ADAccountPassword -Identity $UserName -Server $DC -NewPassword $SecPass -Credential $AdmCredential -ErrorAction Stop
+                    # if ($ChangePasswordAtLogon -eq '$true') {
+                    # Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $true -Credential $AdmCredential -ErrorAction Stop
+                    # }
+                    # else {
+                    # Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
+                    # }
                     }
                     catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
                         $PasswordisReset = $false
@@ -884,8 +889,8 @@ Function Reset-AdPwd {
           #Region Send Function
           function SendMgr {
             if ($PasswordisReset -eq $true) {
-            # $To =  "almaz@orsted.com"
-            $To = $ManagerEmail
+            $To =  "almaz@orsted.com"
+            # $To = $ManagerEmail
             Write-Host "[$Username]Sending email password to Manager.."
             Send-SDMail -To $To -UserName $Username -FullName $Fullname -ManagerFullName $ManagerFulLName -SendPwdTo Manager -Passwd $Password
             if ($SendSDMail -eq $false) {
@@ -898,7 +903,6 @@ Function Reset-AdPwd {
                 $ManagerEmail = $null
                 }
             }
-
           } #End SendMgr
           function SendSMS {
                   $To = $mobilephone.Replace(" ","")
@@ -909,7 +913,6 @@ Function Reset-AdPwd {
                   write-host "[$Username]SMS password sent to $To"
                   Write-Log -Level Info -Data "[$Username]SMS password sent to $To"
           } #End SendSMS
-
           function SendUsr {
                 if ($PasswordisReset -eq $true) {
                 $To = $ADUserEmail
@@ -923,8 +926,14 @@ Function Reset-AdPwd {
           function SecBreach {
                 Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
                 Send-SDMail -To $ADUserEmail -FullName $FullName -SendPwdTo SecBreach 
-                Write-Host  "[$Username]Notification mail sent to $To"
-                Write-Log -Level Info -Data "[$Username]Notification mail sent to $to"
+                Write-Host  "[$Username]Notification mail sent to $ADUserEmail"
+                Write-Log -Level Info -Data "[$Username]Notification mail sent to $ADUserEmail"
+          } #End SecBreach
+          function Custom {
+            Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
+            Send-SDMail -To $ADUserEmail -FullName $FullName -SendPwdTo Custom 
+            Write-Host  "[$Username]Notification mail sent to $ADUserEmail"
+            Write-Log -Level Info -Data "[$Username]Notification mail sent to $ADUserEmail"
           }
           #EndRegion Send Function
 
@@ -955,7 +964,6 @@ Function Reset-AdPwd {
                           # $Mailto = Manager
                           SendUsr
                         }
-
                         # ManagerSMSUser{
                         #   $MailTo =  ManagerSMSUser
                         # }
@@ -965,8 +973,9 @@ Function Reset-AdPwd {
                         SecBreach {
                           $MailTo = 'SecBreach'
                         }
-                  
-                        
+                        Custom {
+                          $MailTo = 'Custom'
+                        }
                       }
                     }
                     2 { 
@@ -996,9 +1005,12 @@ Function Reset-AdPwd {
                             Bulk {
                                 $MailTo = 'manager'
                                 }
-                            Sec {
+                            SecBreach {
                               $MailTo = 'SecBreach'
                               }
+                            Custom {
+                              $MailTo = 'Custom'
+                            }
                         }
                     }
                     3 { 
@@ -1038,6 +1050,12 @@ Function Reset-AdPwd {
                           Write-Host "[$Username]Manager is empty" -ForegroundColor Yellow
                           write-log -Level Warning -Data "[$Username]Manager is empty" 
                         }
+                        Custom {
+                          Write-Host "[$Username]Password reset. But not send" -ForegroundColor Yellow
+                          write-log -Level Warning -data "[$Username]Password reset. But not send"
+                          Write-Host "[$Username]Manager is empty" -ForegroundColor Yellow
+                          write-log -Level Warning -Data "[$Username]Manager is empty" 
+                        }
                       }
                     }
                 }
@@ -1054,7 +1072,6 @@ Function Reset-AdPwd {
             Manager { if ($PasswordisReset -and $type -match '[1,2]') {
                     SendMgr
                     }
-        
             }
             SMS { if ($PasswordisReset -and $type -ne '2') {
                     SendSMS
@@ -1065,7 +1082,6 @@ Function Reset-AdPwd {
                     SendUsr
                     }
             }
-
             ManagerSMSUser { if ($PasswordisReset) {
                     SendMgr
                     SendSMS
@@ -1075,12 +1091,15 @@ Function Reset-AdPwd {
             Bulk { if ($PasswordisReset) {
                     SendMgr
                     }
-
             }
             SecBreach { if ($PasswordisReset) {
-              SendMgr
-              }
-      }
+                    SecBreach
+                    }
+            }
+            Custom { if ($PasswordisReset) {
+                    Custom
+                    }
+            }
         }
 
         $RunTime = New-TimeSpan -Start $StartTime -End (get-date)  #End Stop Watch
@@ -1091,7 +1110,8 @@ function Reset-PwdMulti {
   [CmdletBinding()]
   param (
       [Parameter(Mandatory=$false)]
-      [Int]$PasswordLength
+      [Int]$PasswordLength,
+      [string]$MailTo
       )
 
   Write-Host "Expecting an input file.... " -NoNewline
@@ -1126,16 +1146,23 @@ function Reset-PwdMulti {
 
     foreach ($item in $users){
       try {     
-
             if ($PasswordLength -eq 0){
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item -MailTo Bulk
+              switch ($MailTo) {
+                Bulk {Reset-AdPwd -Username $item -MailTo Bulk}
+                SecBreach {Reset-AdPwd -Username $item -MailTo SecBreach}
+                Custom {Reset-AdPwd -Username $item -MailTo Custom}
+              }
             }
             else {
               Write-host "Attempting to reset for user $item"
-              Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Bulk
+              switch ($MailTo) {
+                Bulk {Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Bulk}
+                SecBreach {Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo SecBreach}
+                Custom {Reset-AdPwd -Username $item -PasswordLength $PasswordLength -MailTo Custom}
             }
           }
+        }
       catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
         Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
         Write-log -Level Error -Data "Authentication Error. Check your credentials" 
@@ -1249,9 +1276,9 @@ Function Show-SDPasswdResetMenu {
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "2"; Write-Host -ForegroundColor White -NoNewline "]"; `
     Write-Host -ForegroundColor White " Reset password for a user [Password send to Manager]"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "3"; Write-Host -ForegroundColor White -NoNewline "]"; `
-    Write-Host -ForegroundColor White " Reset password for multiple user [Password send to Manager. Accept text file with line break delimeter separating each username]"
+    Write-Host -ForegroundColor White " Reset password for multiple user [Password send to Manager]"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "4"; Write-Host -ForegroundColor White -NoNewline "]"; `
-    Write-Host -ForegroundColor White " Reset password for multiple user [Security Breach Incident]"
+    Write-Host -ForegroundColor White " Reset password for multiple user [No Password Send]"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "5"; Write-Host -ForegroundColor White -NoNewline "]"; `
     Write-Host -ForegroundColor White " Query User Active-Directory Info"
     Write-Host -ForegroundColor White -NoNewline "`n["; Write-Host -ForegroundColor Cyan -NoNewline "6"; Write-Host -ForegroundColor White -NoNewline "]"; `
@@ -1383,11 +1410,11 @@ Function Show-SDPasswdResetMenu {
           [int]$Passwordlength = Read-Host
           if ($Passwordlength -lt 12) {
             Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-            Reset-PwdMulti
+            Reset-PwdMulti -MailTo SecBreach
           }
           else {
             Write-Host "Password Length is $PasswordLength"
-            Reset-PwdMulti -PasswordLength $Passwordlength
+            Reset-PwdMulti -PasswordLength $Passwordlength -MailTo SecBreach
           }
           Write-Host -ForegroundColor Cyan "`nDONE!"  
           Write-Host "`nPress any key to return to the previous menu"
