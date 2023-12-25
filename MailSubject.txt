@@ -7,4 +7,4 @@ Your password for DomainName has been reset
 #SecBreach#
 Your password for DomainName has been reset
 #Custom#
-Your Custom Subject. Can contain DomainName and FullName
+Your ADM Password has been reset
