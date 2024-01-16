@@ -824,30 +824,34 @@ Function Reset-AdPwd {
               Set-ADUser -Identity $Username -Server $dc -ChangePasswordAtLogon $false -Credential $AdmCredential -ErrorAction Stop
               }
               }
-              catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
-                  $script:PasswordisReset = $false
-                  Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
-                  Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
-              }
-              Catch [System.Management.Automation.ParameterBindingException]{
-                  $script:PasswordisReset = $false
-                  Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
-                  Write-log -Level Error -Data "Invalid Parameter -Active Directory"
-              }
-              catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
-                  $script:PasswordisReset = $false
-                  Write-Host "AD service error" -ForegroundColor Red
-                  Write-log -Level Error -Data "AD service error"
-              }
-              catch [System.Management.Automation.PSArgumentException]{
-                  $script:PasswordisReset = $false
-                  Write-Host "Username exception" -ForegroundColor Red
-                  Write-Log -Level Error -Data "Username exception"
-              }
-              catch {
-                  $script:PasswordisReset = $false
-                  write-host "catch"
-              }
+          catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
+              $script:PasswordisReset = $false
+              Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
+              Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
+          }
+          Catch [System.Management.Automation.ParameterBindingException]{
+              $script:PasswordisReset = $false
+              Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
+              Write-log -Level Error -Data "Invalid Parameter -Active Directory"
+          }
+          catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
+              $script:PasswordisReset = $false
+              Write-Host "AD service error" -ForegroundColor Red
+              Write-log -Level Error -Data "AD service error"
+          }
+          catch [System.Management.Automation.PSArgumentException]{
+              $script:PasswordisReset = $false
+              Write-Host "Username exception" -ForegroundColor Red
+              Write-Log -Level Error -Data "Username exception"
+          }
+          catch {
+              $script:PasswordisReset = $false
+              write-host "AD Error" -ForegroundColor Red
+              Write-Log -Level Error -Data "AD Error"
+          }
+          finally {
+            $script:PasswordisReset = $script:PasswordisReset
+          }
         }
         switch ($type -like '[1-3]') {
             $True {
@@ -899,7 +903,6 @@ Function Reset-AdPwd {
                 if ($ForceADMReset) {
                   Write-host "Force ADM Reset"
                   Rpwd
-                  $PasswordisReset = $True
                 }
                 else {
                   Write-Host "[$Username]ADM Account - refer PAM" -ForegroundColor Yellow
@@ -936,7 +939,7 @@ Function Reset-AdPwd {
                   Write-Log -Level Info -Data "[$Username]SMS password sent to $To"
           } #End SendSMS
           function SendUsr {
-                if ($PasswordisReset -eq $true) {
+                if ($script:PasswordisReset) {
                 $To = $ADUserEmail
                 # $To = 'almaz@orsted.com'
                 Write-Host "[$Username]Sending notification mail to $ADUserEmail.."
@@ -958,7 +961,7 @@ Function Reset-AdPwd {
           }
           #EndRegion Send Function
 
-        switch ($PasswordisReset) {
+        switch ($script:PasswordisReset) {
             True {
                 Write-Host "[$Username]Password is reset" -ForegroundColor Cyan
                 Write-log -level info -data "[$Username]Password is reset"
@@ -1323,6 +1326,87 @@ Function Unlock-SD {
   }
 }
 
+
+Function DisableADUser {
+  [CmdletBinding()]
+  param(
+        [Parameter()]
+        [String]
+        $UserName,
+        [Parameter()]
+        [Sbool]
+        $DisableUser = $true,
+        [Parameter(Mandatory=$false)]
+        [Int]$PasswordLength = 12,
+        [bool]
+        $ChangePasswordAtLogon = $false
+        )
+  
+  Write-Host "Retrieving PDC for $DomainName"
+  $DC = Get-PDC -DomainName $DomainName
+  Write-Host "Using $DC as DC for the $DomainName domain"
+  $ADUser = Get-UserType -UserName $Username -dc $DC -PR $false
+  $Enabled = $ADUser.isEnabled
+  $AccountExist = $ADUser.AccountExist
+  $isLocked = $ADUser.lockedout
+  
+  function Disable {
+      try {
+          Disable-ADAccount -Identity $UserName -Credential $AdmCredential -ErrorAction Stop
+          $script:Disabled = $true
+      }
+      catch [System.Security.Authentication.AuthenticationException],[System.UnauthorizedAccessException]{
+          $Disabled = $false
+          Write-Host "Authentication Error. Check your credentianls" -ForegroundColor Red
+          Write-log -Level Error -Data "Authentication Error. Check your credentianls" 
+      }
+      catch [System.Management.Automation.ParameterBindingException] {
+          $Disabled = $false
+          Write-Host "Invalid Parameter -Active Directory" -ForegroundColor Red
+          Write-log -Level Error -Data "Invalid Parameter -Active Directory"
+      }
+      catch [Microsoft.ActiveDirectory.Management.ADServerDownException]{
+          $Disabled = $false
+          Write-Host "AD service error" -ForegroundColor Red
+          Write-log -Level Error -Data "AD service error"
+      }
+      catch [System.Management.Automation.PSArgumentException]{
+          $Disabled = $false
+          Write-Host "Username exception" -ForegroundColor Red
+          Write-Log -Level Error -Data "Username exception"
+      }
+      catch {
+          $Disabled = $false
+          write-host "Exception error" -ForegroundColor Red
+          Write-Log -Level Error -Data "Exception error"
+      }
+  }
+
+  switch ($Enabled -and $AccountExist) {
+    True {
+      Disable
+    }
+    False {
+      if (!$AccountExist) {
+        Write-Host "Account not exist" -ForegroundColor Yellow
+        Write-Log -Level Info -Data "[$username] Account not exist"
+
+      }
+      else{
+        Write-Host "Account already disabled" -ForegroundColor Yellow
+        Write-Log -Level Info -Data "[$username] Account Disabled"
+      }
+    }
+  }
+  if ($Disabled) {
+    write-host "Account disabled"
+    Write-Log -Level Info -Data "[$username] Account disabled"
+  }
+  else {
+    write-host "Account not disable"
+    Write-Log -Level Info -Data "[$username] Account not disable"
+  }
+}
 Function Show-SDPasswdResetMenu {
   clear-host
   $pswho = $env:USERNAME
@@ -1400,11 +1484,11 @@ Function Show-SDPasswdResetMenu {
                         [int]$Passwordlength = Read-Host
                         if ($Passwordlength -lt 12) {
                         Write-Host "Password length is $PasswordLength. Proceed with default length [12]"
-                        Reset-AdPwd -Username $Username -MailTo SMS
+                        Reset-AdPwd -Username $Username -MailTo SMS -ChangePasswordAtLogon $true
                         }
                         else {
                         Write-Host "Password Length is $PasswordLength"
-                        Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS
+                        Reset-AdPwd -Username $Username -PasswordLength $Passwordlength -MailTo SMS -ChangePasswordAtLogon $true
                         }
                         Write-Host -ForegroundColor Cyan "`nDONE!"
                         Write-Host "`nPress any key to return to the previous menu"
@@ -1526,7 +1610,7 @@ Function Show-SDPasswdResetMenu {
         7 {  
           do
           {
-              Write-Host "Enter SamAccountName: " -NoNewline
+              Write-Host "Enter SamAccountName (must start with 'adm'): " -NoNewline
               $username = Read-host
               while ($username -eq '' -or -not $username.StartsWith("adm")) {
                 if ($username -eq '') {
